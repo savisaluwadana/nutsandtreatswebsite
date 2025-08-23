@@ -66,16 +66,16 @@ const CorporatePage: React.FC<CorporatePageProps> = ({ onNavigate }) => {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-white">
       {/* Header */}
-      <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white">
-        <div className="container mx-auto px-4 py-16">
+      <div className="bg-amber-50 py-16 md:py-24">
+        <div className="container mx-auto px-4">
           <div className="text-center">
-            <Building2 className="h-16 w-16 mx-auto mb-4" />
-            <h1 className="text-4xl md:text-5xl font-bold mb-4">
+            <Building2 className="h-16 w-16 mx-auto mb-4 text-amber-600" />
+            <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
               Corporate & Bulk Orders
             </h1>
-            <p className="text-xl text-blue-100 max-w-2xl mx-auto">
+            <p className="text-lg text-gray-700 max-w-2xl mx-auto">
               Premium nuts and dry fruits for your business needs. 
               Special pricing, custom packaging, and dedicated support.
             </p>
@@ -97,8 +97,8 @@ const CorporatePage: React.FC<CorporatePageProps> = ({ onNavigate }) => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             {benefits.map((benefit, index) => (
-              <div key={index} className="text-center p-6 rounded-xl border border-gray-100 hover:border-blue-200 hover:shadow-lg transition-all duration-300">
-                <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 text-blue-600 rounded-full mb-4">
+              <div key={index} className="text-center p-6 rounded-xl border border-gray-100 hover:border-amber-200 hover:shadow-lg transition-all duration-300">
+                <div className="inline-flex items-center justify-center w-16 h-16 bg-amber-100 text-amber-600 rounded-full mb-4">
                   <benefit.icon className="h-8 w-8" />
                 </div>
                 <h3 className="text-xl font-semibold text-gray-900 mb-2">
@@ -114,7 +114,7 @@ const CorporatePage: React.FC<CorporatePageProps> = ({ onNavigate }) => {
       </div>
 
       {/* Services & Use Cases */}
-      <div className="py-16 bg-gray-50">
+      <div className="py-16 bg-amber-50">
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
@@ -195,7 +195,7 @@ const CorporatePage: React.FC<CorporatePageProps> = ({ onNavigate }) => {
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
               {/* Contact Form */}
-              <div className="bg-gray-50 p-8 rounded-xl">
+              <div className="bg-white p-8 rounded-lg shadow-sm border border-gray-200">
                 <form onSubmit={handleSubmit} className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
@@ -208,7 +208,7 @@ const CorporatePage: React.FC<CorporatePageProps> = ({ onNavigate }) => {
                         value={formData.companyName}
                         onChange={handleInputChange}
                         required
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
                       />
                     </div>
                     <div>
@@ -221,7 +221,7 @@ const CorporatePage: React.FC<CorporatePageProps> = ({ onNavigate }) => {
                         value={formData.contactName}
                         onChange={handleInputChange}
                         required
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
                       />
                     </div>
                   </div>
@@ -237,7 +237,7 @@ const CorporatePage: React.FC<CorporatePageProps> = ({ onNavigate }) => {
                         value={formData.email}
                         onChange={handleInputChange}
                         required
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
                       />
                     </div>
                     <div>
@@ -250,7 +250,7 @@ const CorporatePage: React.FC<CorporatePageProps> = ({ onNavigate }) => {
                         value={formData.phone}
                         onChange={handleInputChange}
                         required
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
                       />
                     </div>
                   </div>
@@ -264,7 +264,7 @@ const CorporatePage: React.FC<CorporatePageProps> = ({ onNavigate }) => {
                         name="productType"
                         value={formData.productType}
                         onChange={handleInputChange}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
                       >
                         <option value="">Select product type</option>
                         <option value="nuts">Nuts</option>
@@ -285,7 +285,7 @@ const CorporatePage: React.FC<CorporatePageProps> = ({ onNavigate }) => {
                         value={formData.quantity}
                         onChange={handleInputChange}
                         placeholder="e.g., 100 kg, 500 units"
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
                       />
                     </div>
                   </div>
@@ -299,7 +299,7 @@ const CorporatePage: React.FC<CorporatePageProps> = ({ onNavigate }) => {
                         name="budget"
                         value={formData.budget}
                         onChange={handleInputChange}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
                       >
                         <option value="">Select budget range</option>
                         <option value="under-50k">Under Rs. 50,000</option>
@@ -318,7 +318,7 @@ const CorporatePage: React.FC<CorporatePageProps> = ({ onNavigate }) => {
                         name="deliveryDate"
                         value={formData.deliveryDate}
                         onChange={handleInputChange}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
                       />
                     </div>
                   </div>
@@ -333,13 +333,13 @@ const CorporatePage: React.FC<CorporatePageProps> = ({ onNavigate }) => {
                       onChange={handleInputChange}
                       rows={4}
                       placeholder="Tell us about your specific requirements, custom packaging needs, branding, or any other details..."
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
                     />
                   </div>
 
                   <button
                     type="submit"
-                    className="w-full bg-blue-600 text-white py-4 px-6 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+                    className="w-full bg-amber-600 text-white py-4 px-6 rounded-lg font-semibold hover:bg-amber-700 transition-colors"
                   >
                     Submit Enquiry
                   </button>
@@ -358,21 +358,21 @@ const CorporatePage: React.FC<CorporatePageProps> = ({ onNavigate }) => {
 
                   <div className="space-y-4">
                     <div className="flex items-center">
-                      <Phone className="h-5 w-5 text-blue-600 mr-3" />
+                      <Phone className="h-5 w-5 text-amber-600 mr-3" />
                       <div>
                         <p className="font-medium text-gray-900">Corporate Sales</p>
                         <p className="text-gray-600">+94 11 234 5678 (Ext. 101)</p>
                       </div>
                     </div>
                     <div className="flex items-center">
-                      <Mail className="h-5 w-5 text-blue-600 mr-3" />
+                      <Mail className="h-5 w-5 text-amber-600 mr-3" />
                       <div>
                         <p className="font-medium text-gray-900">Email</p>
                         <p className="text-gray-600">corporate@nutsntreatslk.com</p>
                       </div>
                     </div>
                     <div className="flex items-center">
-                      <MapPin className="h-5 w-5 text-blue-600 mr-3" />
+                      <MapPin className="h-5 w-5 text-amber-600 mr-3" />
                       <div>
                         <p className="font-medium text-gray-900">Office</p>
                         <p className="text-gray-600">Colombo 03, Sri Lanka</p>
@@ -381,23 +381,23 @@ const CorporatePage: React.FC<CorporatePageProps> = ({ onNavigate }) => {
                   </div>
                 </div>
 
-                <div className="bg-blue-50 p-6 rounded-xl">
+                <div className="bg-amber-50 p-6 rounded-xl">
                   <h4 className="font-semibold text-gray-900 mb-3">What happens next?</h4>
                   <ul className="space-y-2 text-sm text-gray-600">
                     <li className="flex items-center">
-                      <span className="w-2 h-2 bg-blue-600 rounded-full mr-3"></span>
+                      <span className="w-2 h-2 bg-amber-600 rounded-full mr-3"></span>
                       We'll review your requirements within 24 hours
                     </li>
                     <li className="flex items-center">
-                      <span className="w-2 h-2 bg-blue-600 rounded-full mr-3"></span>
+                      <span className="w-2 h-2 bg-amber-600 rounded-full mr-3"></span>
                       Our team will prepare a customized quote
                     </li>
                     <li className="flex items-center">
-                      <span className="w-2 h-2 bg-blue-600 rounded-full mr-3"></span>
+                      <span className="w-2 h-2 bg-amber-600 rounded-full mr-3"></span>
                       Schedule a call to discuss your needs in detail
                     </li>
                     <li className="flex items-center">
-                      <span className="w-2 h-2 bg-blue-600 rounded-full mr-3"></span>
+                      <span className="w-2 h-2 bg-amber-600 rounded-full mr-3"></span>
                       Finalize terms and place your order
                     </li>
                   </ul>
@@ -406,7 +406,7 @@ const CorporatePage: React.FC<CorporatePageProps> = ({ onNavigate }) => {
                 <div className="text-center">
                   <button 
                     onClick={() => onNavigate('home')}
-                    className="text-blue-600 hover:text-blue-700 font-medium"
+                    className="text-amber-600 hover:text-amber-700 font-medium"
                   >
                     ← Browse Our Products
                   </button>

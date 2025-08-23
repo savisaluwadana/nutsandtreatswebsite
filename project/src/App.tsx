@@ -6,12 +6,17 @@ import ProductPage from './pages/ProductPage';
 import CartPage from './pages/CartPage';
 import HampersPage from './pages/HampersPage';
 import CorporatePage from './pages/CorporatePage';
+import AboutPage from './pages/AboutPage';
+import ContactUsPage from './pages/ContactUsPage';
+import AccountPage from './pages/AccountPage';
 import Footer from './components/Footer';
 import { CartProvider } from './context/CartContext';
+import { useAuth } from './context/useAuth';
 
-type Page = 'home' | 'category' | 'product' | 'cart' | 'hampers' | 'corporate';
+type Page = 'home' | 'category' | 'product' | 'cart' | 'hampers' | 'corporate' | 'about' | 'contact' | 'account';
 
 function App() {
+  const { user } = useAuth();
   const [currentPage, setCurrentPage] = useState<Page>('home');
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [selectedProduct, setSelectedProduct] = useState<number | null>(null);
@@ -36,6 +41,12 @@ function App() {
         return <HampersPage onNavigate={navigateToPage} />;
       case 'corporate':
         return <CorporatePage onNavigate={navigateToPage} />;
+      case 'about':
+        return <AboutPage onNavigate={navigateToPage} />;
+      case 'contact':
+        return <ContactUsPage />;
+      case 'account':
+        return <AccountPage onNavigate={navigateToPage} />;
       default:
         return <HomePage onNavigate={navigateToPage} />;
     }
