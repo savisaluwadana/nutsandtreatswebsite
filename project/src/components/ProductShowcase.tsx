@@ -5,7 +5,7 @@ import { Product } from '../data/products';
 interface ProductShowcaseProps {
   title: string;
   subtitle: string;
-  products: Product[];
+  products: Partial<Product>[];
   onNavigate: (page: 'product', category?: string, productId?: number) => void;
 }
 

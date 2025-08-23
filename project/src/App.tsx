@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import Header from './components/Header';
-import HomePage from './pages/HomePage';
-import CategoryPage from './pages/CategoryPage';
-import ProductPage from './pages/ProductPage';
+import HomePage from './pages/HomePage.supabase'; // Using Supabase implementation
+import CategoryPage from './pages/CategoryPage.supabase'; // Using Supabase implementation
+import ProductPage from './pages/ProductPage.supabase'; // Using Supabase implementation
 import CartPage from './pages/CartPage';
 import HampersPage from './pages/HampersPage';
 import CorporatePage from './pages/CorporatePage';
