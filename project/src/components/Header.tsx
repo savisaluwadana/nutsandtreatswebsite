@@ -1,11 +1,10 @@
 import React, { useState } from 'react';
-import { Search, User, Heart, ShoppingCart, Menu, X } from 'lucide-react';
+import { Search, Heart, ShoppingCart, Menu, X } from 'lucide-react';
 import { useCart } from '../context/CartContext';
-import { useAuth } from '../context/useAuth';
 import { categories } from '../data/products';
 
 interface HeaderProps {
-  onNavigate: (page: 'home' | 'category' | 'product' | 'cart' | 'hampers' | 'corporate' | 'about' | 'contact' | 'account', category?: string, productId?: number) => void;
+  onNavigate: (page: 'home' | 'category' | 'product' | 'cart' | 'checkout' | 'hampers' | 'corporate' | 'about' | 'contact', category?: string, productId?: number) => void;
 }
 
 const Header: React.FC<HeaderProps> = ({ onNavigate }) => {
@@ -13,7 +12,6 @@ const Header: React.FC<HeaderProps> = ({ onNavigate }) => {
   const [isShopDropdownOpen, setIsShopDropdownOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const { getTotalItems } = useCart();
-  const { user } = useAuth();
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -110,13 +108,6 @@ const Header: React.FC<HeaderProps> = ({ onNavigate }) => {
 
           {/* Action Icons */}
           <div className="flex items-center space-x-4">
-            <button 
-              onClick={() => onNavigate('account')}
-              className="text-gray-600 hover:text-amber-600 transition-colors flex items-center"
-            >
-              <User className="h-6 w-6" />
-              {user && <span className="ml-1 text-xs bg-green-500 h-2 w-2 rounded-full"></span>}
-            </button>
             <button className="text-gray-600 hover:text-amber-600 transition-colors">
               <Heart className="h-6 w-6" />
             </button>

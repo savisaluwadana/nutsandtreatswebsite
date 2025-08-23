@@ -3,7 +3,7 @@ import { useAuth } from '../context/useAuth';
 import AuthForm from '../components/AuthForm';
 
 interface AccountPageProps {
-  onNavigate: (page: 'home' | 'category' | 'product' | 'cart' | 'hampers' | 'corporate' | 'about' | 'contact' | 'account') => void;
+  onNavigate: (page: 'home' | 'category' | 'product' | 'cart' | 'checkout' | 'hampers' | 'corporate' | 'about' | 'contact' | 'account') => void;
 }
 
 const AccountPage: React.FC<AccountPageProps> = ({ onNavigate }) => {

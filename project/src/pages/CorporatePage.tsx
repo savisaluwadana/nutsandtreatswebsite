@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Building2, Users, Package, Award, Mail, Phone, MapPin } from 'lucide-react';
 
 interface CorporatePageProps {
-  onNavigate: (page: 'home') => void;
+  onNavigate: (page: 'home' | 'cart' | 'checkout') => void;
 }
 
 const CorporatePage: React.FC<CorporatePageProps> = ({ onNavigate }) => {

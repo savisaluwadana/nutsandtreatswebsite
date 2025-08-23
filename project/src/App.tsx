@@ -4,19 +4,18 @@ import HomePage from './pages/HomePage.supabase'; // Using Supabase implementati
 import CategoryPage from './pages/CategoryPage.supabase'; // Using Supabase implementation
 import ProductPage from './pages/ProductPage.supabase'; // Using Supabase implementation
 import CartPage from './pages/CartPage';
+import CheckoutPage from './pages/CheckoutPage';
 import HampersPage from './pages/HampersPage';
 import CorporatePage from './pages/CorporatePage';
 import AboutPage from './pages/AboutPage';
 import ContactUsPage from './pages/ContactUsPage';
-import AccountPage from './pages/AccountPage';
 import Footer from './components/Footer';
 import { CartProvider } from './context/CartContext';
-import { useAuth } from './context/useAuth';
 
-type Page = 'home' | 'category' | 'product' | 'cart' | 'hampers' | 'corporate' | 'about' | 'contact' | 'account';
+// Remove 'account' from Page type since we're removing authentication
+type Page = 'home' | 'category' | 'product' | 'cart' | 'checkout' | 'hampers' | 'corporate' | 'about' | 'contact';
 
 function App() {
-  const { user } = useAuth();
   const [currentPage, setCurrentPage] = useState<Page>('home');
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [selectedProduct, setSelectedProduct] = useState<number | null>(null);
@@ -37,6 +36,8 @@ function App() {
         return <ProductPage productId={selectedProduct} onNavigate={navigateToPage} />;
       case 'cart':
         return <CartPage onNavigate={navigateToPage} />;
+      case 'checkout':
+        return <CheckoutPage onNavigate={navigateToPage} />;
       case 'hampers':
         return <HampersPage onNavigate={navigateToPage} />;
       case 'corporate':
@@ -45,8 +46,6 @@ function App() {
         return <AboutPage onNavigate={navigateToPage} />;
       case 'contact':
         return <ContactUsPage />;
-      case 'account':
-        return <AccountPage onNavigate={navigateToPage} />;
       default:
         return <HomePage onNavigate={navigateToPage} />;
     }

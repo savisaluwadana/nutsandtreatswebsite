@@ -1,11 +1,15 @@
-import React from 'react';
-import { Gift, Star, ShoppingCart } from 'lucide-react';
+import React, { useState } from 'react';
+import { Gift, Star, ShoppingCart, Check } from 'lucide-react';
+import { useCart } from '../context/CartContext';
 
 interface HampersPageProps {
-  onNavigate: (page: 'home') => void;
+  onNavigate: (page: 'home' | 'category' | 'product' | 'cart' | 'checkout' | 'hampers' | 'corporate' | 'about' | 'contact', category?: string, productId?: number) => void;
 }
 
 const HampersPage: React.FC<HampersPageProps> = ({ onNavigate }) => {
+  const { addToCart } = useCart();
+  const [addedToCart, setAddedToCart] = useState<Record<number, boolean>>({});
+  
   const hampers = [
     {
       id: 1,
@@ -16,7 +20,8 @@ const HampersPage: React.FC<HampersPageProps> = ({ onNavigate }) => {
       description: 'A luxurious collection of premium cashews, almonds, dates, and walnuts',
       contents: ['Premium Cashews (250g)', 'Roasted Almonds (200g)', 'Medjool Dates (200g)', 'Walnut Kernels (150g)'],
       rating: 4.9,
-      reviews: 45
+      reviews: 45,
+      weight: 'Hamper'
     },
     {
       id: 2,
@@ -27,7 +32,8 @@ const HampersPage: React.FC<HampersPageProps> = ({ onNavigate }) => {
       description: 'Perfect for health-conscious friends and family',
       contents: ['Mixed Nuts (300g)', 'Pumpkin Seeds (150g)', 'Organic Trail Mix (200g)', 'Herbal Tea Blend (100g)'],
       rating: 4.7,
-      reviews: 32
+      reviews: 32,
+      weight: 'Hamper'
     },
     {
       id: 3,
@@ -38,7 +44,8 @@ const HampersPage: React.FC<HampersPageProps> = ({ onNavigate }) => {
       description: 'Elegant presentation perfect for corporate gifting',
       contents: ['Cashew Selection (400g)', 'Premium Almonds (300g)', 'Dried Fruits Mix (250g)', 'Honey (200ml)', 'Gift Card'],
       rating: 4.8,
-      reviews: 28
+      reviews: 28,
+      weight: 'Hamper'
     },
     {
       id: 4,
@@ -48,7 +55,8 @@ const HampersPage: React.FC<HampersPageProps> = ({ onNavigate }) => {
       description: 'Celebrate festivals with this traditional assortment',
       contents: ['Cashew Nuts (300g)', 'Dates (250g)', 'Raisins (200g)', 'Pistachios (150g)', 'Traditional Sweets (200g)'],
       rating: 4.9,
-      reviews: 67
+      reviews: 67,
+      weight: 'Hamper'
     }
   ];
 
@@ -175,9 +183,39 @@ const HampersPage: React.FC<HampersPageProps> = ({ onNavigate }) => {
                   </div>
                 </div>
 
-                <button className="w-full bg-amber-600 text-white py-3 px-4 rounded-lg font-semibold hover:bg-amber-700 transition-colors flex items-center justify-center">
-                  <Gift className="h-4 w-4 mr-2" />
-                  Add to Cart
+                <button 
+                  onClick={() => {
+                    addToCart({
+                      id: hamper.id,
+                      name: hamper.name,
+                      price: hamper.price,
+                      weight: hamper.weight,
+                      image: hamper.image
+                    });
+                    setAddedToCart(prev => ({...prev, [hamper.id]: true}));
+                    
+                    // Reset the added state after 2 seconds
+                    setTimeout(() => {
+                      setAddedToCart(prev => ({...prev, [hamper.id]: false}));
+                    }, 2000);
+                  }}
+                  className={`w-full ${
+                    addedToCart[hamper.id] 
+                      ? 'bg-green-600 hover:bg-green-700' 
+                      : 'bg-amber-600 hover:bg-amber-700'
+                  } text-white py-3 px-4 rounded-lg font-semibold transition-colors flex items-center justify-center`}
+                >
+                  {addedToCart[hamper.id] ? (
+                    <>
+                      <Check className="h-4 w-4 mr-2" />
+                      Added to Cart
+                    </>
+                  ) : (
+                    <>
+                      <ShoppingCart className="h-4 w-4 mr-2" />
+                      Add to Cart
+                    </>
+                  )}
                 </button>
               </div>
             </div>
@@ -213,7 +251,10 @@ const HampersPage: React.FC<HampersPageProps> = ({ onNavigate }) => {
               </div>
             </div>
 
-            <button className="bg-amber-600 text-white px-8 py-4 rounded-lg font-semibold hover:bg-amber-700 transition-colors text-lg">
+            <button 
+              onClick={() => onNavigate('category', 'all')}
+              className="bg-amber-600 text-white px-8 py-4 rounded-lg font-semibold hover:bg-amber-700 transition-colors text-lg"
+            >
               Start Building Your Hamper
             </button>
           </div>
@@ -231,8 +272,11 @@ const HampersPage: React.FC<HampersPageProps> = ({ onNavigate }) => {
             Contact us for personalized recommendations.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <button className="bg-amber-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-amber-700 transition-colors">
-              WhatsApp Us
+            <button 
+              onClick={() => onNavigate('contact')}
+              className="bg-amber-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-amber-700 transition-colors"
+            >
+              Contact Us
             </button>
             <button 
               onClick={() => onNavigate('home')}

@@ -7,7 +7,7 @@ import { adaptProductToUIFormat, adaptProductsToUIFormat } from '../services/pro
 
 interface ProductPageProps {
   productId: number | null;
-  onNavigate: (page: 'home' | 'category' | 'product', category?: string, productId?: number) => void;
+  onNavigate: (page: 'home' | 'category' | 'product' | 'cart' | 'checkout', category?: string, productId?: number) => void;
 }
 
 const ProductPage: React.FC<ProductPageProps> = ({ productId, onNavigate }) => {

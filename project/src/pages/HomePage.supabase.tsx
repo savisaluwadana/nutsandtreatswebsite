@@ -7,7 +7,7 @@ import TestimonialSection from '../components/TestimonialSection';
 import { getBestsellerProducts, getNewProducts, Product } from '../services/productService';
 
 interface HomePageProps {
-  onNavigate: (page: 'home' | 'category' | 'product' | 'cart' | 'hampers' | 'corporate' | 'about' | 'contact' | 'account', category?: string, productId?: number) => void;
+  onNavigate: (page: 'home' | 'category' | 'product' | 'cart' | 'checkout' | 'hampers' | 'corporate' | 'about' | 'contact' | 'account', category?: string, productId?: number) => void;
 }
 
 const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {

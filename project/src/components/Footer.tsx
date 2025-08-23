@@ -2,7 +2,7 @@ import React from 'react';
 import { MessageCircle, Facebook, Instagram, Twitter, Mail, Phone, MapPin } from 'lucide-react';
 
 interface FooterProps {
-  onNavigate: (page: 'home' | 'category' | 'product' | 'cart' | 'hampers' | 'corporate') => void;
+  onNavigate: (page: 'home' | 'category' | 'product' | 'cart' | 'checkout' | 'hampers' | 'corporate' | 'about' | 'contact') => void;
 }
 
 const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
