@@ -1,0 +1,18 @@
+[build]
+  # Use the existing npm build script which runs `vite build`
+  command = "npm run build"
+  # Vite outputs to `dist` by default; Netlify should publish this folder
+  publish = "dist"
+  # If your project lives in a subdirectory, set `base` accordingly.
+  base = "/"
+
+[build.environment]
+  # Recommend Node 18 for Vite 5 / modern toolchains — adjust if your Netlify site uses another version
+  NODE_VERSION = "18"
+
+[[redirects]]
+  # Single page app redirect: serve index.html for all routes
+  from = "/*"
+  to = "/index.html"
+  status = 200
+  force = true
