@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Search, Heart, ShoppingCart, Menu, X, User, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../context/useAuth';
 import { useCart } from '../context/CartContext';
+import { useLikedProducts } from '../context/LikedProductsContext';
 import { categories } from '../data/products';
 
 interface HeaderProps {
@@ -14,6 +15,7 @@ const Header: React.FC<HeaderProps> = ({ onNavigate }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const { getTotalItems } = useCart();
   const { user } = useAuth();
+  const { likedProducts } = useLikedProducts();
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -115,9 +117,14 @@ const Header: React.FC<HeaderProps> = ({ onNavigate }) => {
           <div className="flex items-center space-x-4">
             <button 
               onClick={() => onNavigate('liked')}
-              className="text-gray-600 hover:text-amber-600 transition-colors"
+              className="relative text-gray-600 hover:text-amber-600 transition-colors"
             >
               <Heart className="h-6 w-6" />
+              {likedProducts.length > 0 && (
+                <span className="absolute -top-2 -right-2 bg-amber-600 text-white rounded-full text-xs w-5 h-5 flex items-center justify-center">
+                  {likedProducts.length}
+                </span>
+              )}
             </button>
             {/* Admin dashboard link - visible only for admins */}
             {user && (user.user_metadata?.is_admin || (user.user_metadata && user.user_metadata.isAdmin)) && (

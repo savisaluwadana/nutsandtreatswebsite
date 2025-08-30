@@ -1,9 +1,10 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { ChevronDown, Filter, X } from 'lucide-react';
-import { categories } from '../data/products';
+import { ChevronDown, Filter } from 'lucide-react';
+import { categories, Product } from '../data/products';
 import ProductCard from '../components/ProductCard';
-import { getProductsByCategory } from '../services/productService';
+import { getProductsByCategory, getAllProducts } from '../services/productService';
 import { adaptProductsToUIFormat } from '../services/productAdapter';
+import { useCart } from '../context/CartContext';
 
 interface CategoryPageProps {
   category: string;
@@ -14,19 +15,26 @@ const CategoryPage: React.FC<CategoryPageProps> = ({ category, onNavigate }) => 
   const [sortBy, setSortBy] = useState('popularity');
   const [priceRange, setPriceRange] = useState([0, 10000]);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [onlyInStock, setOnlyInStock] = useState(false);
+  const [minRating, setMinRating] = useState(0);
+  const [showBestsellersOnly, setShowBestsellersOnly] = useState(false);
+  const [showNewOnly, setShowNewOnly] = useState(false);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [categoryProducts, setCategoryProducts] = useState<any[]>([]);
+  const [categoryProducts, setCategoryProducts] = useState<Partial<Product>[]>([]);
 
-  const categoryInfo = categories.find(cat => cat.id === category);
+  const { addToHamper } = useCart();
+
+  const categoryInfo = category === 'all' ? { name: 'All Products' } : categories.find(cat => cat.id === category);
 
   // Fetch products from Supabase
   useEffect(() => {
     const fetchProducts = async () => {
       try {
         setLoading(true);
-        const products = await getProductsByCategory(category);
+        const products = category === 'all' ? await getAllProducts() : await getProductsByCategory(category);
         const adaptedProducts = adaptProductsToUIFormat(products);
         setCategoryProducts(adaptedProducts);
       } catch (err) {
@@ -53,13 +61,50 @@ const CategoryPage: React.FC<CategoryPageProps> = ({ category, onNavigate }) => 
     return Array.from(tags);
   }, [categoryProducts]);
 
+  const allCategories = useMemo(() => {
+    const cats = new Set<string>();
+    categoryProducts.forEach(p => p.category && cats.add(p.category));
+    return Array.from(cats);
+  }, [categoryProducts]);
+
+  const toggleCategory = (cat: string) => {
+    if (selectedCategories.includes(cat)) setSelectedCategories(selectedCategories.filter(c => c !== cat));
+    else setSelectedCategories([...selectedCategories, cat]);
+  };
+
+  const handleAddToHamper = (product: Partial<Product>) => {
+    const defaultWeight = product.weights?.[0] || { size: 'Default', price: product.price || 0 };
+    addToHamper({
+      id: product.id || 0,
+      name: product.name || 'Product',
+      price: defaultWeight.price,
+      weight: defaultWeight.size,
+      image: product.image || ''
+    });
+  };
+
   // Filter and sort products
   const filteredProducts = useMemo(() => {
-    let filtered = categoryProducts.filter(product => {
+    const filtered = categoryProducts.filter(product => {
       const price = product.price || (product.weights?.[0]?.price) || 0;
       const withinPriceRange = price >= priceRange[0] && price <= priceRange[1];
-      const hasSelectedTags = selectedTags.length === 0 || 
-        (product.tags && selectedTags.some(tag => product.tags.includes(tag)));
+      const hasSelectedTags = selectedTags.length === 0 || (product.tags && selectedTags.some(tag => product.tags!.includes(tag)));
+      
+      // category multi-select filter
+      if (selectedCategories.length > 0 && product.category && !selectedCategories.includes(product.category)) return false;
+
+      // availability
+      if (onlyInStock) {
+        const stock = product.stock ?? 0;
+        if (stock <= 0) return false;
+      }
+
+      // bestseller / new toggles
+      if (showBestsellersOnly && !product.isBestseller) return false;
+      if (showNewOnly && !product.isNew) return false;
+
+      // minimum rating
+      if ((product.rating || 0) < minRating) return false;
       
       return withinPriceRange && hasSelectedTags;
     });
@@ -78,7 +123,7 @@ const CategoryPage: React.FC<CategoryPageProps> = ({ category, onNavigate }) => 
         // Popularity: bestsellers first
         return filtered.sort((a, b) => (b.isBestseller ? 1 : 0) - (a.isBestseller ? 1 : 0));
     }
-  }, [categoryProducts, sortBy, priceRange, selectedTags]);
+  }, [categoryProducts, sortBy, priceRange, selectedTags, selectedCategories, onlyInStock, minRating, showBestsellersOnly, showNewOnly]);
 
   const toggleTag = (tag: string) => {
     if (selectedTags.includes(tag)) {
@@ -127,17 +172,19 @@ const CategoryPage: React.FC<CategoryPageProps> = ({ category, onNavigate }) => 
           Back to Home
         </button>
         <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">
-          {categoryInfo?.name || category.charAt(0).toUpperCase() + category.slice(1)}
+          {category === 'all' ? 'Build Your Custom Hamper' : (categoryInfo?.name || category.charAt(0).toUpperCase() + category.slice(1))}
         </h1>
         <p className="text-gray-600">
-          Explore our selection of premium {categoryInfo?.name?.toLowerCase() || category} 
-          sourced from around the world.
+          {category === 'all' 
+            ? 'Select products to add to your custom hamper. Use filters to find the perfect items.'
+            : `Explore our selection of premium ${categoryInfo?.name?.toLowerCase() || category} sourced from around the world.`
+          }
         </p>
       </div>
 
       <div className="flex flex-col lg:flex-row gap-8">
         {/* Filter Section - Mobile Toggle */}
-        <div className="lg:hidden mb-4">
+        <div className={`${category === 'all' ? 'hidden' : ''} lg:hidden mb-4`}>
           <button
             onClick={() => setIsFilterOpen(!isFilterOpen)}
             className="w-full bg-amber-600 text-white py-2 px-4 rounded flex items-center justify-center"
@@ -148,7 +195,7 @@ const CategoryPage: React.FC<CategoryPageProps> = ({ category, onNavigate }) => 
         </div>
 
         {/* Sidebar Filters - Desktop Always Visible, Mobile Toggle */}
-        <div className={`${isFilterOpen ? 'block' : 'hidden'} lg:block lg:w-1/4`}>
+        <div className={`${category === 'all' || isFilterOpen ? 'block' : 'hidden'} lg:block lg:w-1/4`}>
           <div className="bg-white rounded-xl p-6 shadow-sm sticky top-24">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-bold text-gray-900">Filters</h2>
@@ -156,6 +203,11 @@ const CategoryPage: React.FC<CategoryPageProps> = ({ category, onNavigate }) => 
                 onClick={() => {
                   setPriceRange([0, 10000]);
                   setSelectedTags([]);
+                  setSelectedCategories([]);
+                  setOnlyInStock(false);
+                  setMinRating(0);
+                  setShowBestsellersOnly(false);
+                  setShowNewOnly(false);
                 }}
                 className="text-sm text-amber-600 hover:text-amber-700"
               >
@@ -186,6 +238,52 @@ const CategoryPage: React.FC<CategoryPageProps> = ({ category, onNavigate }) => 
                 onChange={(e) => setPriceRange([priceRange[0], parseInt(e.target.value)])}
                 className="w-full accent-amber-600"
               />
+            </div>
+
+            {/* Category Filter - only for 'all' */}
+            {category === 'all' && allCategories.length > 0 && (
+              <div className="mb-6">
+                <h3 className="font-semibold text-gray-900 mb-3">Category</h3>
+                <div className="space-y-2">
+                  {allCategories.map(cat => (
+                    <label key={cat} className="flex items-center cursor-pointer">
+                      <input type="checkbox" className="h-4 w-4 accent-amber-600" checked={selectedCategories.includes(cat)} onChange={() => toggleCategory(cat)} />
+                      <span className="ml-2 text-gray-700">{cat}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Availability */}
+            <div className="mb-6">
+              <h3 className="font-semibold text-gray-900 mb-3">Availability</h3>
+              <label className="flex items-center cursor-pointer">
+                <input type="checkbox" className="h-4 w-4 accent-amber-600" checked={onlyInStock} onChange={() => setOnlyInStock(!onlyInStock)} />
+                <span className="ml-2 text-gray-700">Show only items in stock</span>
+              </label>
+            </div>
+
+            {/* Special */}
+            <div className="mb-6">
+              <h3 className="font-semibold text-gray-900 mb-3">Special</h3>
+              <label className="flex items-center cursor-pointer mb-2">
+                <input type="checkbox" className="h-4 w-4 accent-amber-600" checked={showBestsellersOnly} onChange={() => setShowBestsellersOnly(!showBestsellersOnly)} />
+                <span className="ml-2 text-gray-700">Bestsellers</span>
+              </label>
+              <label className="flex items-center cursor-pointer">
+                <input type="checkbox" className="h-4 w-4 accent-amber-600" checked={showNewOnly} onChange={() => setShowNewOnly(!showNewOnly)} />
+                <span className="ml-2 text-gray-700">New Arrivals</span>
+              </label>
+            </div>
+
+            {/* Minimum Rating */}
+            <div className="mb-6">
+              <h3 className="font-semibold text-gray-900 mb-3">Minimum Rating</h3>
+              <div className="flex items-center gap-3">
+                <input type="range" min={0} max={5} step={0.5} value={minRating} onChange={(e) => setMinRating(parseFloat(e.target.value))} className="w-full accent-amber-600" />
+                <span className="text-gray-700">{minRating}+</span>
+              </div>
             </div>
 
             {/* Tags Filter */}
@@ -242,6 +340,7 @@ const CategoryPage: React.FC<CategoryPageProps> = ({ category, onNavigate }) => 
                   key={product.id} 
                   product={product} 
                   onNavigate={onNavigate}
+                  onAddToHamper={category === 'all' ? handleAddToHamper : undefined}
                 />
               ))}
             </div>

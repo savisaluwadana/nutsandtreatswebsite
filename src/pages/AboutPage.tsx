@@ -1,21 +1,85 @@
 import React from 'react';
+import { Award, Users, Heart, TrendingUp, Calendar, MapPin } from 'lucide-react';
 
 interface AboutPageProps {
   onNavigate: (page: 'home' | 'category' | 'product' | 'cart' | 'checkout' | 'hampers' | 'corporate' | 'about' | 'contact', category?: string, productId?: number) => void;
 }
 
 const AboutPage: React.FC<AboutPageProps> = ({ onNavigate }) => {
+  const timeline = [
+    {
+      year: '2018',
+      title: 'Founded',
+      description: 'Started with a small shop in Colombo, focusing on premium quality nuts and dry fruits.'
+    },
+    {
+      year: '2020',
+      title: 'Online Store Launch',
+      description: 'Expanded to online platform, reaching customers across Sri Lanka.'
+    },
+    {
+      year: '2022',
+      title: 'Quality Certification',
+      description: 'Achieved international quality certifications for food safety and sustainability.'
+    },
+    {
+      year: '2024',
+      title: 'Corporate Partnerships',
+      description: 'Established partnerships with leading corporations for bulk supply and custom solutions.'
+    }
+  ];
+
+  const stats = [
+    { number: '50K+', label: 'Happy Customers' },
+    { number: '100+', label: 'Product Varieties' },
+    { number: '15+', label: 'Years Experience' },
+    { number: '98%', label: 'Customer Satisfaction' }
+  ];
+
+  const awards = [
+    {
+      icon: Award,
+      title: 'Best Nut Retailer 2023',
+      issuer: 'Sri Lanka Chamber of Commerce'
+    },
+    {
+      icon: Heart,
+      title: 'Sustainability Award',
+      issuer: 'Green Business Council'
+    },
+    {
+      icon: TrendingUp,
+      title: 'Fastest Growing Food Brand',
+      issuer: 'Business Excellence Awards'
+    }
+  ];
+
   return (
     <div className="min-h-screen bg-white">
       {/* Hero Section */}
-      <div className="bg-amber-50 py-16 md:py-24">
-        <div className="container mx-auto px-4">
-          <div className="max-w-3xl mx-auto text-center">
-            <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">Our Story</h1>
-            <p className="text-lg text-gray-700 mb-8">
+      <div className="bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50 py-20 md:py-28 relative overflow-hidden">
+        <div className="absolute inset-0">
+          <div className="absolute top-20 left-20 w-32 h-32 bg-amber-200 rounded-full opacity-20 animate-pulse"></div>
+          <div className="absolute bottom-20 right-20 w-24 h-24 bg-orange-200 rounded-full opacity-20 animate-pulse delay-1000"></div>
+          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-40 h-40 bg-yellow-200 rounded-full opacity-10 animate-pulse delay-500"></div>
+        </div>
+        <div className="container mx-auto px-4 relative">
+          <div className="max-w-4xl mx-auto text-center">
+            <h1 className="text-5xl md:text-6xl font-bold text-gray-900 mb-6 bg-gradient-to-r from-amber-600 via-orange-600 to-yellow-600 bg-clip-text text-transparent">
+              Our Story
+            </h1>
+            <p className="text-xl text-gray-700 mb-8 leading-relaxed">
               Nuts N Treats began with a simple idea: to provide high-quality, 
               fresh nuts and dried fruits that bring joy and health to every household.
             </p>
+            <div className="flex flex-wrap justify-center gap-6 mt-8">
+              {stats.map((stat, index) => (
+                <div key={index} className="bg-white/80 backdrop-blur-sm px-8 py-4 rounded-xl shadow-lg">
+                  <div className="text-3xl font-bold text-amber-600 mb-1">{stat.number}</div>
+                  <div className="text-sm text-gray-600">{stat.label}</div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>
@@ -104,8 +168,53 @@ const AboutPage: React.FC<AboutPageProps> = ({ onNavigate }) => {
         </div>
       </div>
 
+      {/* Timeline Section */}
+      <div className="py-16 bg-gray-50">
+        <div className="container mx-auto px-4">
+          <div className="max-w-4xl mx-auto">
+            <h2 className="text-3xl font-bold text-center text-gray-900 mb-12">Our Journey</h2>
+            <div className="space-y-8">
+              {timeline.map((item, index) => (
+                <div key={index} className="flex items-center">
+                  <div className="flex-shrink-0 w-20 h-20 bg-amber-100 rounded-full flex items-center justify-center">
+                    <Calendar className="h-8 w-8 text-amber-600" />
+                  </div>
+                  <div className="ml-6 flex-1">
+                    <div className="flex items-center mb-2">
+                      <span className="text-2xl font-bold text-amber-600 mr-4">{item.year}</span>
+                      <h3 className="text-xl font-semibold text-gray-900">{item.title}</h3>
+                    </div>
+                    <p className="text-gray-600">{item.description}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Awards Section */}
+      <div className="py-16 bg-white">
+        <div className="container mx-auto px-4">
+          <div className="max-w-4xl mx-auto">
+            <h2 className="text-3xl font-bold text-center text-gray-900 mb-12">Recognition & Awards</h2>
+            <div className="grid md:grid-cols-3 gap-8">
+              {awards.map((award, index) => (
+                <div key={index} className="text-center p-6 bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl">
+                  <div className="inline-flex items-center justify-center w-16 h-16 bg-amber-100 text-amber-600 rounded-full mb-4">
+                    <award.icon className="h-8 w-8" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">{award.title}</h3>
+                  <p className="text-sm text-gray-600">{award.issuer}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Team Section */}
-      <div className="py-16">
+      <div className="py-16 bg-gray-50">
         <div className="container mx-auto px-4">
           <div className="max-w-6xl mx-auto">
             <h2 className="text-3xl font-bold text-center text-gray-900 mb-12">Meet Our Team</h2>

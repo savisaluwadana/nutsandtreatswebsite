@@ -7,16 +7,20 @@ export interface CartItem {
   weight: string;
   quantity: number;
   image: string;
+  isHamper?: boolean;
 }
 
 interface CartContextType {
   items: CartItem[];
   addToCart: (item: Omit<CartItem, 'quantity'>) => void;
+  addToHamper: (item: Omit<CartItem, 'quantity'>) => void;
   removeFromCart: (id: number, weight: string) => void;
   updateQuantity: (id: number, weight: string, quantity: number) => void;
   clearCart: () => void;
   getTotalItems: () => number;
   getTotalPrice: () => number;
+  getHamperItems: () => CartItem[];
+  getCartItems: () => CartItem[];
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -75,6 +79,30 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return items.reduce((total, item) => total + item.quantity, 0);
   };
 
+  const addToHamper = (newItem: Omit<CartItem, 'quantity'>) => {
+    setItems(prevItems => {
+      const existingItem = prevItems.find(item => item.id === newItem.id && item.weight === newItem.weight && item.isHamper);
+      
+      if (existingItem) {
+        return prevItems.map(item =>
+          item.id === newItem.id && item.weight === newItem.weight && item.isHamper
+            ? { ...item, quantity: item.quantity + 1 }
+            : item
+        );
+      }
+      
+      return [...prevItems, { ...newItem, quantity: 1, isHamper: true }];
+    });
+  };
+
+  const getHamperItems = () => {
+    return items.filter(item => item.isHamper);
+  };
+
+  const getCartItems = () => {
+    return items.filter(item => !item.isHamper);
+  };
+
   const getTotalPrice = () => {
     return items.reduce((total, item) => total + item.price * item.quantity, 0);
   };
@@ -83,11 +111,14 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     <CartContext.Provider value={{
       items,
       addToCart,
+      addToHamper,
       removeFromCart,
       updateQuantity,
       clearCart,
       getTotalItems,
-      getTotalPrice
+      getTotalPrice,
+      getHamperItems,
+      getCartItems
     }}>
       {children}
     </CartContext.Provider>

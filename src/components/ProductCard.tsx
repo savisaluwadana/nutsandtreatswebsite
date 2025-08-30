@@ -53,9 +53,9 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onNavigate }) => {
   return (
     <div 
       onClick={handleCardClick}
-      className="bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden border border-gray-100 hover:border-amber-200 cursor-pointer group"
+      className="bg-white rounded-xl shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100 hover:border-amber-200 cursor-pointer group"
     >
-      <div className="relative aspect-square overflow-hidden">
+      <div className="relative aspect-square overflow-hidden bg-gray-50">
         <img
           src={product.image}
           alt={product.name}
@@ -65,12 +65,12 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onNavigate }) => {
         {/* Badges */}
         <div className="absolute top-3 left-3 flex flex-col gap-2">
           {product.isBestseller && (
-            <span className="bg-amber-600 text-white text-xs font-semibold px-2 py-1 rounded-full">
+            <span className="bg-gradient-to-r from-amber-600 to-orange-500 text-white text-xs font-semibold px-2 py-1 rounded-full shadow-sm">
               Bestseller
             </span>
           )}
           {product.isNew && (
-            <span className="bg-green-600 text-white text-xs font-semibold px-2 py-1 rounded-full">
+            <span className="bg-green-600 text-white text-xs font-semibold px-2 py-1 rounded-full shadow-sm">
               New
             </span>
           )}
@@ -90,7 +90,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onNavigate }) => {
 
         {/* Discount badge */}
         {product.originalPrice && product.price && (
-          <div className="absolute bottom-3 left-3 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded">
+          <div className="absolute bottom-3 left-3 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded shadow">
             {Math.round((1 - product.price / product.originalPrice) * 100)}% OFF
           </div>
         )}
@@ -159,9 +159,9 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onNavigate }) => {
         {/* Add to Cart Button */}
         <button
           onClick={handleAddToCart}
-          className="w-full bg-amber-600 text-white py-2 px-4 rounded-lg font-semibold hover:bg-amber-700 transition-colors flex items-center justify-center group"
+          className="w-full bg-gradient-to-r from-amber-600 to-orange-500 text-white py-2 px-4 rounded-lg font-semibold hover:scale-105 transition-transform duration-200 flex items-center justify-center group"
         >
-          <ShoppingCart className="h-4 w-4 mr-2 group-hover:scale-110 transition-transform" />
+          <ShoppingCart className="h-4 w-4 mr-2" />
           Add to Cart
         </button>
       </div>

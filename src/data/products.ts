@@ -28,12 +28,13 @@ export interface Product {
 
 export const categories = [
   { id: 'nuts', name: 'Nuts', image: 'https://images.pexels.com/photos/1295572/pexels-photo-1295572.jpeg' },
-  { id: 'dry-fruits', name: 'Dry Fruits', image: 'https://images.pexels.com/photos/1132047/pexels-photo-1132047.jpeg' },
+  { id: 'dried-fruits', name: 'Dried Fruits', image: 'https://images.pexels.com/photos/1132047/pexels-photo-1132047.jpeg' },
   { id: 'seeds', name: 'Seeds', image: 'https://images.pexels.com/photos/1446318/pexels-photo-1446318.jpeg' },
-  { id: 'herbs', name: 'Herbs & Spices', image: 'https://images.pexels.com/photos/1340116/pexels-photo-1340116.jpeg' },
-  { id: 'seasoning', name: 'Seasoning', image: 'https://images.pexels.com/photos/1024240/pexels-photo-1024240.jpeg' },
-  { id: 'other', name: 'Other', image: 'https://images.pexels.com/photos/1327374/pexels-photo-1327374.jpeg' }
+  { id: 'mixed', name: 'Mixed & Assortments', image: 'https://images.pexels.com/photos/1327374/pexels-photo-1327374.jpeg' }
 ];
+
+// Products data is now fetched from Supabase database
+// The products array has been removed to avoid duplication
 
 export const products: Product[] = [
   {
@@ -87,7 +88,7 @@ export const products: Product[] = [
   {
     id: 2,
     name: 'Medjool Dates',
-    category: 'dry-fruits',
+    category: 'dried-fruits',
     price: 1890,
     image: 'https://images.pexels.com/photos/1132047/pexels-photo-1132047.jpeg',
     images: [
@@ -222,7 +223,7 @@ export const products: Product[] = [
   {
     id: 5,
     name: 'Organic Turmeric Powder',
-    category: 'herbs',
+    category: 'mixed',
     price: 890,
     image: 'https://images.pexels.com/photos/1024240/pexels-photo-1024240.jpeg',
     images: [
@@ -266,7 +267,7 @@ export const products: Product[] = [
   {
     id: 6,
     name: 'Mixed Berry Trail Mix',
-    category: 'other',
+    category: 'mixed',
     price: 1980,
     image: 'https://images.pexels.com/photos/1327374/pexels-photo-1327374.jpeg',
     images: [

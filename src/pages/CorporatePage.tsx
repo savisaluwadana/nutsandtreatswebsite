@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Building2, Users, Package, Award, Mail, Phone, MapPin } from 'lucide-react';
+import { Building2, Users, Package, Award, Mail, Phone, MapPin, Star, CheckCircle } from 'lucide-react';
 
 interface CorporatePageProps {
   onNavigate: (page: 'home' | 'cart' | 'checkout') => void;
@@ -65,20 +65,60 @@ const CorporatePage: React.FC<CorporatePageProps> = ({ onNavigate }) => {
     }
   ];
 
+  const testimonials = [
+    {
+      name: 'Rajesh Kumar',
+      company: 'TechCorp Solutions',
+      role: 'Procurement Manager',
+      content: 'Nuts N Treats has been our go-to supplier for employee gifts. Their quality and service are exceptional.',
+      rating: 5
+    },
+    {
+      name: 'Priya Fernando',
+      company: 'Ceylon Hotels',
+      role: 'Events Coordinator',
+      content: 'Perfect for our corporate events. Fast delivery and beautiful presentation.',
+      rating: 5
+    },
+    {
+      name: 'Michael Chen',
+      company: 'Global Foods Ltd',
+      role: 'Operations Director',
+      content: 'Reliable supplier with consistent quality. Highly recommend for bulk orders.',
+      rating: 5
+    }
+  ];
+
   return (
     <div className="min-h-screen bg-white">
       {/* Header */}
-      <div className="bg-amber-50 py-16 md:py-24">
-        <div className="container mx-auto px-4">
+      <div className="bg-gradient-to-br from-amber-50 to-orange-50 py-16 md:py-24 relative overflow-hidden">
+        <div className="absolute inset-0 opacity-30">
+          <div className="absolute top-10 left-10 w-20 h-20 bg-amber-200 rounded-full"></div>
+          <div className="absolute top-32 right-20 w-16 h-16 bg-orange-200 rounded-full"></div>
+          <div className="absolute bottom-20 left-1/4 w-12 h-12 bg-amber-300 rounded-full"></div>
+        </div>
+        <div className="container mx-auto px-4 relative">
           <div className="text-center">
-            <Building2 className="h-16 w-16 mx-auto mb-4 text-amber-600" />
-            <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+            <Building2 className="h-20 w-20 mx-auto mb-6 text-amber-600 animate-pulse" />
+            <h1 className="text-5xl md:text-6xl font-bold text-gray-900 mb-6 bg-gradient-to-r from-amber-600 to-orange-600 bg-clip-text text-transparent">
               Corporate & Bulk Orders
             </h1>
-            <p className="text-lg text-gray-700 max-w-2xl mx-auto">
+            <p className="text-xl text-gray-700 max-w-3xl mx-auto leading-relaxed">
               Premium nuts and dry fruits for your business needs. 
-              Special pricing, custom packaging, and dedicated support.
+              Special pricing, custom packaging, and dedicated support for enterprises.
             </p>
+            <div className="mt-8 flex flex-wrap justify-center gap-4">
+              <div className="bg-white/80 backdrop-blur-sm px-6 py-3 rounded-full shadow-lg">
+                <span className="text-amber-600 font-semibold">✓ Wholesale Pricing</span>
+              </div>
+              <div className="bg-white/80 backdrop-blur-sm px-6 py-3 rounded-full shadow-lg">
+                <span className="text-amber-600 font-semibold">✓ Custom Branding</span>
+              </div>
+              <div className="bg-white/80 backdrop-blur-sm px-6 py-3 rounded-full shadow-lg">
+                <span className="text-amber-600 font-semibold">✓ Fast Delivery</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -97,8 +137,8 @@ const CorporatePage: React.FC<CorporatePageProps> = ({ onNavigate }) => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             {benefits.map((benefit, index) => (
-              <div key={index} className="text-center p-6 rounded-xl border border-gray-100 hover:border-amber-200 hover:shadow-lg transition-all duration-300">
-                <div className="inline-flex items-center justify-center w-16 h-16 bg-amber-100 text-amber-600 rounded-full mb-4">
+              <div key={index} className="text-center p-6 rounded-xl border border-gray-100 hover:border-amber-200 hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
+                <div className="inline-flex items-center justify-center w-16 h-16 bg-amber-100 text-amber-600 rounded-full mb-4 hover:bg-amber-200 transition-colors">
                   <benefit.icon className="h-8 w-8" />
                 </div>
                 <h3 className="text-xl font-semibold text-gray-900 mb-2">
@@ -107,6 +147,38 @@ const CorporatePage: React.FC<CorporatePageProps> = ({ onNavigate }) => {
                 <p className="text-gray-600">
                   {benefit.description}
                 </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Testimonials Section */}
+      <div className="bg-gray-50 py-16">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+              What Our Corporate Clients Say
+            </h2>
+            <p className="text-lg text-gray-600">
+              Trusted by businesses across Sri Lanka for quality and service
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {testimonials.map((testimonial, index) => (
+              <div key={index} className="bg-white p-6 rounded-xl shadow-sm hover:shadow-lg transition-shadow">
+                <div className="flex items-center mb-4">
+                  {[...Array(testimonial.rating)].map((_, i) => (
+                    <Star key={i} className="h-5 w-5 text-amber-400 fill-current" />
+                  ))}
+                </div>
+                <p className="text-gray-700 mb-4 italic">"{testimonial.content}"</p>
+                <div className="border-t pt-4">
+                  <p className="font-semibold text-gray-900">{testimonial.name}</p>
+                  <p className="text-sm text-gray-600">{testimonial.role}</p>
+                  <p className="text-sm text-amber-600">{testimonial.company}</p>
+                </div>
               </div>
             ))}
           </div>

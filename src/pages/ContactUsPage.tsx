@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Mail, Phone, MapPin, Clock, Send } from 'lucide-react';
+import { Mail, Phone, MapPin, Clock, Send, HelpCircle, ChevronDown, ChevronUp } from 'lucide-react';
 
 const ContactUsPage: React.FC = () => {
   const [formData, setFormData] = useState({
@@ -10,6 +10,7 @@ const ContactUsPage: React.FC = () => {
     message: ''
   });
   const [formSubmitted, setFormSubmitted] = useState(false);
+  const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -35,16 +36,61 @@ const ContactUsPage: React.FC = () => {
     }, 1000);
   };
 
+  const faqs = [
+    {
+      question: 'What are your delivery areas?',
+      answer: 'We deliver across Sri Lanka including Colombo, Kandy, Galle, and other major cities. Delivery typically takes 1-3 business days.'
+    },
+    {
+      question: 'Do you offer bulk discounts?',
+      answer: 'Yes! We offer special pricing for bulk orders. Contact our corporate sales team for customized quotes.'
+    },
+    {
+      question: 'Are your products organic?',
+      answer: 'Many of our products are sourced from organic farms. We can provide certification details upon request.'
+    },
+    {
+      question: 'What is your return policy?',
+      answer: 'We accept returns within 7 days of delivery if products are unopened and in original packaging. Quality guaranteed.'
+    },
+    {
+      question: 'Do you ship internationally?',
+      answer: 'Currently, we only ship within Sri Lanka. International shipping may be available in the future.'
+    }
+  ];
+
+  const toggleFaq = (index: number) => {
+    setExpandedFaq(expandedFaq === index ? null : index);
+  };
+
   return (
     <div className="min-h-screen bg-white">
       {/* Hero Section */}
-      <div className="bg-amber-50 py-16 md:py-24">
-        <div className="container mx-auto px-4">
-          <div className="max-w-3xl mx-auto text-center">
-            <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">Contact Us</h1>
-            <p className="text-lg text-gray-700">
+      <div className="bg-gradient-to-br from-amber-50 to-orange-50 py-16 md:py-24 relative overflow-hidden">
+        <div className="absolute inset-0">
+          <div className="absolute top-10 left-10 w-20 h-20 bg-amber-200 rounded-full opacity-20"></div>
+          <div className="absolute bottom-10 right-10 w-16 h-16 bg-orange-200 rounded-full opacity-20"></div>
+          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-32 h-32 bg-yellow-200 rounded-full opacity-10"></div>
+        </div>
+        <div className="container mx-auto px-4 relative">
+          <div className="max-w-4xl mx-auto text-center">
+            <h1 className="text-5xl md:text-6xl font-bold text-gray-900 mb-6 bg-gradient-to-r from-amber-600 to-orange-600 bg-clip-text text-transparent">
+              Contact Us
+            </h1>
+            <p className="text-xl text-gray-700 mb-8 leading-relaxed">
               Have questions, feedback, or want to place an order? We'd love to hear from you!
             </p>
+            <div className="flex flex-wrap justify-center gap-4">
+              <div className="bg-white/80 backdrop-blur-sm px-6 py-3 rounded-full shadow-lg">
+                <span className="text-amber-600 font-semibold">📞 24/7 Support</span>
+              </div>
+              <div className="bg-white/80 backdrop-blur-sm px-6 py-3 rounded-full shadow-lg">
+                <span className="text-amber-600 font-semibold">🚚 Fast Delivery</span>
+              </div>
+              <div className="bg-white/80 backdrop-blur-sm px-6 py-3 rounded-full shadow-lg">
+                <span className="text-amber-600 font-semibold">💬 Quick Response</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -249,6 +295,46 @@ const ContactUsPage: React.FC = () => {
                   </a>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* FAQ Section */}
+      <div className="py-16 bg-gray-50">
+        <div className="container mx-auto px-4">
+          <div className="max-w-4xl mx-auto">
+            <div className="text-center mb-12">
+              <HelpCircle className="h-16 w-16 mx-auto mb-4 text-amber-600" />
+              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+                Frequently Asked Questions
+              </h2>
+              <p className="text-lg text-gray-600">
+                Find answers to common questions about our products and services
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              {faqs.map((faq, index) => (
+                <div key={index} className="bg-white rounded-lg shadow-sm border border-gray-200">
+                  <button
+                    onClick={() => toggleFaq(index)}
+                    className="w-full px-6 py-4 text-left flex items-center justify-between hover:bg-gray-50 transition-colors"
+                  >
+                    <span className="text-lg font-medium text-gray-900">{faq.question}</span>
+                    {expandedFaq === index ? (
+                      <ChevronUp className="h-5 w-5 text-amber-600" />
+                    ) : (
+                      <ChevronDown className="h-5 w-5 text-amber-600" />
+                    )}
+                  </button>
+                  {expandedFaq === index && (
+                    <div className="px-6 pb-4">
+                      <p className="text-gray-600">{faq.answer}</p>
+                    </div>
+                  )}
+                </div>
+              ))}
             </div>
           </div>
         </div>

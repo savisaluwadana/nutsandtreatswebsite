@@ -29,11 +29,11 @@ const TestimonialSection: React.FC = () => {
   return (
     <section className="py-16 bg-gray-50">
       <div className="container mx-auto px-4">
-        <div className="text-center mb-12">
-          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+        <div className="text-center mb-10">
+          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">
             What Our Customers Say
           </h2>
-          <p className="text-lg text-gray-600">
+          <p className="text-base text-gray-600">
             Join thousands of satisfied customers across Sri Lanka
           </p>
         </div>
@@ -42,15 +42,16 @@ const TestimonialSection: React.FC = () => {
           {testimonials.map((testimonial, index) => (
             <div
               key={index}
-              className="bg-white rounded-xl p-6 shadow-sm hover:shadow-lg transition-shadow duration-300 relative"
+              className="bg-white rounded-xl p-6 shadow-sm hover:shadow-lg transition-shadow duration-300 relative overflow-hidden"
             >
+              <div className="absolute inset-0 bg-gradient-to-b from-transparent to-amber-50 opacity-60 pointer-events-none" />
               <Quote className="absolute top-4 right-4 h-8 w-8 text-amber-200" />
               
-              <div className="flex items-center mb-4">
+              <div className="flex items-center mb-4 relative z-10">
                 <img
                   src={testimonial.image}
                   alt={testimonial.name}
-                  className="w-12 h-12 rounded-full object-cover mr-4"
+                  className="w-14 h-14 rounded-full object-cover mr-4 border-2 border-white shadow"
                 />
                 <div>
                   <h4 className="font-semibold text-gray-900">
@@ -62,7 +63,7 @@ const TestimonialSection: React.FC = () => {
                 </div>
               </div>
 
-              <div className="flex items-center mb-4">
+              <div className="flex items-center mb-4 relative z-10">
                 {[...Array(testimonial.rating)].map((_, i) => (
                   <Star
                     key={i}
@@ -71,7 +72,7 @@ const TestimonialSection: React.FC = () => {
                 ))}
               </div>
 
-              <p className="text-gray-700 italic">
+              <p className="text-gray-700 italic relative z-10">
                 "{testimonial.text}"
               </p>
             </div>
@@ -79,7 +80,7 @@ const TestimonialSection: React.FC = () => {
         </div>
 
         <div className="mt-12 text-center">
-          <div className="inline-flex items-center space-x-4 bg-white rounded-full px-6 py-3 shadow-sm">
+          <div className="inline-flex items-center space-x-4 bg-white rounded-full px-6 py-3 shadow-md">
             <div className="flex items-center">
               <span className="text-2xl font-bold text-amber-600">4.8</span>
               <div className="flex ml-2">

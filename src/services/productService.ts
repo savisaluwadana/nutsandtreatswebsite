@@ -29,17 +29,42 @@ export async function getAllProducts(): Promise<Product[]> {
 
 // Fetch products by category
 export async function getProductsByCategory(category: string): Promise<Product[]> {
+  // Try exact match first
   const { data, error } = await supabase
     .from('products')
     .select('*')
     .eq('category', category);
-  
+
   if (error) {
-    console.error(`Error fetching ${category} products:`, error);
-    throw error;
+    console.error(`Error fetching ${category} products (exact match):`, error);
+    // don't throw yet; attempt fallback queries
   }
-  
-  return data || [];
+
+  if (data && data.length > 0) return data;
+
+  // Fallbacks: try case-insensitive partial matches; handle slug -> name (hyphens -> spaces)
+  const variants = [
+    category.replace(/-/g, ' '), // dry-fruits -> dry fruits
+    category.replace(/-/g, ''),  // dry-fruits -> dryfruits
+    category // original
+  ];
+
+  for (const v of variants) {
+    const { data: altData, error: altError } = await supabase
+      .from('products')
+      .select('*')
+      .ilike('category', `%${v}%`);
+
+    if (altError) {
+      console.error(`Error fetching ${category} products (variant '${v}') :`, altError);
+      continue;
+    }
+
+    if (altData && altData.length > 0) return altData;
+  }
+
+  // nothing found
+  return [];
 }
 
 // Fetch a single product by ID

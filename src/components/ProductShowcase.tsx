@@ -16,17 +16,17 @@ const ProductShowcase: React.FC<ProductShowcaseProps> = ({ title, subtitle, prod
   return (
     <section className="py-16 bg-gray-50">
       <div className="container mx-auto px-4">
-        <div className="text-center mb-12">
-          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+        <div className="text-center mb-10">
+          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">
             {title}
           </h2>
-          <p className="text-lg text-gray-600">
+          <p className="text-base text-gray-600">
             {subtitle}
           </p>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {products.slice(0, 4).map((product) => (
+          {products.slice(0, 8).map((product) => (
             <ProductCard
               key={product.id}
               product={product}
@@ -38,7 +38,7 @@ const ProductShowcase: React.FC<ProductShowcaseProps> = ({ title, subtitle, prod
         <div className="text-center mt-8">
           <button
             onClick={() => onNavigate('products')}
-            className="bg-white border-2 border-amber-600 text-amber-600 px-8 py-3 rounded-lg font-semibold hover:bg-amber-600 hover:text-white transition-all duration-300"
+            className="inline-flex items-center gap-3 bg-gradient-to-r from-amber-600 to-orange-500 text-white px-6 py-3 rounded-full font-semibold shadow-md hover:scale-105 transition-transform duration-300"
           >
             View All Products
           </button>
