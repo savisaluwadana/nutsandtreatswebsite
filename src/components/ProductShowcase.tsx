@@ -6,7 +6,8 @@ interface ProductShowcaseProps {
   title: string;
   subtitle: string;
   products: Partial<Product>[];
-  onNavigate: (page: 'product', category?: string, productId?: number) => void;
+  // allow navigating to pages (including 'products')
+  onNavigate: (page: string, category?: string, productId?: number, query?: string) => void;
 }
 
 const ProductShowcase: React.FC<ProductShowcaseProps> = ({ title, subtitle, products, onNavigate }) => {
@@ -35,7 +36,10 @@ const ProductShowcase: React.FC<ProductShowcaseProps> = ({ title, subtitle, prod
         </div>
 
         <div className="text-center mt-8">
-          <button className="bg-white border-2 border-amber-600 text-amber-600 px-8 py-3 rounded-lg font-semibold hover:bg-amber-600 hover:text-white transition-all duration-300">
+          <button
+            onClick={() => onNavigate('products')}
+            className="bg-white border-2 border-amber-600 text-amber-600 px-8 py-3 rounded-lg font-semibold hover:bg-amber-600 hover:text-white transition-all duration-300"
+          >
             View All Products
           </button>
         </div>

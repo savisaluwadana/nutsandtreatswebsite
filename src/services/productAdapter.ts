@@ -21,14 +21,20 @@ export const adaptProductToUIFormat = (product: SupabaseProduct): Partial<UIProd
     weights: [
       { size: 'Default', price: product.price }
     ],
-    tags: [],
+  // attempt to carry through tags from the DB if present; fall back to empty array
+  // using a relaxed access in case the DB row doesn't include tags
+  tags: (product as any).tags || [],
     benefits: [],
     nutritionPer100g: {},
-    allergens: [],
-    origin: '',
-    storage: '',
-    shelfLife: '',
-    howToUse: []
+  allergens: [],
+  origin: '',
+  storage: '',
+  shelfLife: '',
+  howToUse: [],
+  // include stock quantity so the UI can filter by availability
+  stock: (product as any).stock_quantity ?? (product as any).stock ?? 0,
+  // preserve created_at for sorting if available
+  createdAt: (product as any).created_at || null,
   };
 };
 

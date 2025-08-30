@@ -2,6 +2,7 @@ import React from 'react';
 import { Star, Heart, ShoppingCart } from 'lucide-react';
 import { Product } from '../data/products';
 import { useCart } from '../context/CartContext';
+import { useLikedProducts } from '../context/LikedProductsContext';
 
 interface ProductCardProps {
   product: Partial<Product>;
@@ -10,6 +11,7 @@ interface ProductCardProps {
 
 const ProductCard: React.FC<ProductCardProps> = ({ product, onNavigate }) => {
   const { addToCart } = useCart();
+  const { addToLiked, removeFromLiked, isLiked } = useLikedProducts();
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -21,6 +23,25 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onNavigate }) => {
       weight: defaultWeight.size,
       image: product.image || ''
     });
+  };
+
+  const handleLikeToggle = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!product.id || !product.name || !product.image || !product.category) return;
+
+    const likedProduct = {
+      id: product.id,
+      name: product.name,
+      price: product.price || (product.weights?.[0]?.price) || 0,
+      image: product.image,
+      category: product.category
+    };
+
+    if (isLiked(product.id)) {
+      removeFromLiked(product.id);
+    } else {
+      addToLiked(likedProduct);
+    }
   };
 
   const handleCardClick = () => {
@@ -56,8 +77,15 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onNavigate }) => {
         </div>
 
         {/* Wishlist button */}
-        <button className="absolute top-3 right-3 p-2 bg-white rounded-full shadow-md hover:bg-red-50 hover:text-red-600 transition-colors">
-          <Heart className="h-4 w-4" />
+        <button 
+          onClick={handleLikeToggle}
+          className={`absolute top-3 right-3 p-2 rounded-full shadow-md transition-colors ${
+            isLiked(product.id || 0) 
+              ? 'bg-red-500 text-white hover:bg-red-600' 
+              : 'bg-white hover:bg-red-50 hover:text-red-600'
+          }`}
+        >
+          <Heart className={`h-4 w-4 ${isLiked(product.id || 0) ? 'fill-current' : ''}`} />
         </button>
 
         {/* Discount badge */}

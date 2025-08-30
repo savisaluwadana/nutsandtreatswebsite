@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { Search, Heart, ShoppingCart, Menu, X } from 'lucide-react';
+import { Search, Heart, ShoppingCart, Menu, X, User, ShieldCheck } from 'lucide-react';
+import { useAuth } from '../context/useAuth';
 import { useCart } from '../context/CartContext';
 import { categories } from '../data/products';
 
 interface HeaderProps {
-  onNavigate: (page: 'home' | 'category' | 'product' | 'cart' | 'checkout' | 'hampers' | 'corporate' | 'about' | 'contact', category?: string, productId?: number) => void;
+  onNavigate: (page: string, category?: string, productId?: number, query?: string) => void;
 }
 
 const Header: React.FC<HeaderProps> = ({ onNavigate }) => {
@@ -12,11 +13,12 @@ const Header: React.FC<HeaderProps> = ({ onNavigate }) => {
   const [isShopDropdownOpen, setIsShopDropdownOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const { getTotalItems } = useCart();
+  const { user } = useAuth();
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    // Implement search functionality
-    console.log('Searching for:', searchQuery);
+    // navigate to products page with query
+    onNavigate('products', undefined, undefined, searchQuery);
   };
 
   return (
@@ -70,7 +72,10 @@ const Header: React.FC<HeaderProps> = ({ onNavigate }) => {
             >
               Corporate/Bulk
             </button>
-            <button className="text-gray-700 hover:text-amber-600 font-medium">
+            <button 
+              onClick={() => onNavigate('blog')}
+              className="text-gray-700 hover:text-amber-600 font-medium"
+            >
               Blog
             </button>
             <button 
@@ -108,8 +113,23 @@ const Header: React.FC<HeaderProps> = ({ onNavigate }) => {
 
           {/* Action Icons */}
           <div className="flex items-center space-x-4">
-            <button className="text-gray-600 hover:text-amber-600 transition-colors">
+            <button 
+              onClick={() => onNavigate('liked')}
+              className="text-gray-600 hover:text-amber-600 transition-colors"
+            >
               <Heart className="h-6 w-6" />
+            </button>
+            {/* Admin dashboard link - visible only for admins */}
+            {user && (user.user_metadata?.is_admin || (user.user_metadata && user.user_metadata.isAdmin)) && (
+              <button onClick={() => onNavigate('dashboard')} className="text-gray-700 hover:text-amber-600 font-medium flex items-center gap-2">
+                <ShieldCheck className="h-5 w-5" />
+                <span className="hidden md:inline">Dashboard</span>
+              </button>
+            )}
+
+            {/* User / Login icon */}
+            <button onClick={() => onNavigate(user ? 'account' : 'account')} className="text-gray-600 hover:text-amber-600 transition-colors">
+              <User className="h-6 w-6" />
             </button>
             <button 
               onClick={() => onNavigate('cart')}
@@ -198,8 +218,23 @@ const Header: React.FC<HeaderProps> = ({ onNavigate }) => {
               >
                 Corporate/Bulk
               </button>
-              <button className="block text-gray-700 hover:text-amber-600 font-medium py-2">
+              <button 
+                onClick={() => {
+                  onNavigate('blog');
+                  setIsMenuOpen(false);
+                }}
+                className="block text-gray-700 hover:text-amber-600 font-medium py-2"
+              >
                 Blog
+              </button>
+              <button 
+                onClick={() => {
+                  onNavigate('liked');
+                  setIsMenuOpen(false);
+                }}
+                className="block text-gray-700 hover:text-amber-600 font-medium py-2"
+              >
+                My Likes
               </button>
               <button 
                 onClick={() => {

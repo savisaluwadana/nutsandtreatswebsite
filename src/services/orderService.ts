@@ -11,6 +11,8 @@ export interface CustomerInfo {
 }
 
 export interface OrderData {
+  // optional supabase user id for authenticated users
+  userId?: string | null;
   customer: CustomerInfo;
   order: {
     items: {
@@ -39,6 +41,11 @@ export const submitOrder = async (orderData: OrderData): Promise<{ success: bool
       
       // Log the order data (in a real app, this would be sent to the server)
       console.log('Order submitted:', orderData);
+      if (orderData.userId) {
+        console.log('Order associated with user:', orderData.userId);
+      } else {
+        console.log('Guest order (no user)');
+      }
       
       // Return a success response with the order ID
       resolve({

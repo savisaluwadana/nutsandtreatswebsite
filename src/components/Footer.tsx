@@ -2,7 +2,7 @@ import React from 'react';
 import { MessageCircle, Facebook, Instagram, Twitter, Mail, Phone, MapPin } from 'lucide-react';
 
 interface FooterProps {
-  onNavigate: (page: 'home' | 'category' | 'product' | 'cart' | 'checkout' | 'hampers' | 'corporate' | 'about' | 'contact') => void;
+  onNavigate: (page: 'home' | 'category' | 'product' | 'cart' | 'checkout' | 'hampers' | 'corporate' | 'about' | 'contact' | 'blog' | 'liked') => void;
 }
 
 const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
@@ -55,8 +55,19 @@ const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
                 </button>
               </li>
               <li>
-                <button className="text-gray-600 hover:text-amber-600 transition-colors">
+                <button 
+                  onClick={() => onNavigate('blog')}
+                  className="text-gray-600 hover:text-amber-600 transition-colors"
+                >
                   Blog
+                </button>
+              </li>
+              <li>
+                <button 
+                  onClick={() => onNavigate('liked')}
+                  className="text-gray-600 hover:text-amber-600 transition-colors"
+                >
+                  My Likes
                 </button>
               </li>
               <li>

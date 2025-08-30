@@ -33,17 +33,29 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
-    // Get current session
+    // Get current session with timeout
     const getSession = async () => {
-      const { data: { session }, error } = await supabase.auth.getSession();
-      
-      if (error) {
-        console.error('Error getting session:', error);
+      try {
+        const result = await Promise.race([
+          supabase.auth.getSession(),
+          new Promise<never>((_, reject) => setTimeout(() => reject(new Error('Session fetch timeout')), 5000))
+        ]);
+        
+        const { data: { session }, error } = result;
+        
+        if (error) {
+          console.error('Error getting session:', error);
+        }
+        
+        setSession(session);
+        setUser(session?.user || null);
+      } catch (err) {
+        console.error('Failed to get session:', err);
+        setSession(null);
+        setUser(null);
+      } finally {
+        setLoading(false);
       }
-      
-      setSession(session);
-      setUser(session?.user || null);
-      setLoading(false);
     };
 
     getSession();

@@ -21,6 +21,9 @@ export interface Product {
   storage: string;
   shelfLife: string;
   howToUse: string[];
+  // optional fields used by the supabase adapter and filtering UI
+  stock?: number;
+  createdAt?: string | null;
 }
 
 export const categories = [

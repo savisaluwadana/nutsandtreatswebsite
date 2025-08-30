@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Check } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { submitOrder, CustomerInfo } from '../services/orderService';
+import { useAuth } from '../context/useAuth';
 
 interface CheckoutPageProps {
   onNavigate: (page: 'home' | 'category' | 'product' | 'cart', category?: string, productId?: number) => void;
@@ -9,6 +10,7 @@ interface CheckoutPageProps {
 
 const CheckoutPage: React.FC<CheckoutPageProps> = ({ onNavigate }) => {
   const { items, getTotalPrice, clearCart } = useCart();
+  const { user } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [step, setStep] = useState<'info' | 'confirm'>('info');
   const [customerInfo, setCustomerInfo] = useState<CustomerInfo>({
@@ -26,7 +28,15 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ onNavigate }) => {
     if (items.length === 0) {
       onNavigate('cart');
     }
-  }, [items, onNavigate]);
+    // If user is signed in, prefill email/name
+    if (user) {
+      setCustomerInfo(prev => ({
+        ...prev,
+        email: user.email || prev.email,
+        fullName: (user.user_metadata && (user.user_metadata.full_name || user.user_metadata.name)) || prev.fullName
+      }));
+    }
+  }, [items, onNavigate, user]);
 
   const deliveryCharge = getTotalPrice() > 3000 ? 0 : 350;
   const subtotal = getTotalPrice();
@@ -48,6 +58,8 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ onNavigate }) => {
   const generateOrderSummary = () => {
     // Create a formatted order summary object
     return {
+  // attach supabase user id when available (keeps guest flow unchanged)
+  userId: user?.id || null,
       customer: {
         fullName: customerInfo.fullName,
         email: customerInfo.email,
