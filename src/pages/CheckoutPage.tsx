@@ -85,13 +85,44 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ onNavigate }) => {
       const response = await submitOrder(orderData);
       
       if (response.success) {
+        // Build a WhatsApp message with all order details
+        const lines: string[] = [];
+        lines.push(`Order ID: ${response.orderId}`);
+        lines.push(`Date: ${new Date(orderData.orderDate).toLocaleString()}`);
+        lines.push('');
+        lines.push('Customer:');
+        lines.push(`Name: ${orderData.customer.fullName}`);
+        lines.push(`Phone: ${orderData.customer.phone}`);
+        lines.push(`Email: ${orderData.customer.email}`);
+        lines.push(`Address: ${orderData.customer.address}, ${orderData.customer.city}, ${orderData.customer.postalCode}`);
+        if (orderData.customer.notes) {
+          lines.push(`Notes: ${orderData.customer.notes}`);
+        }
+        lines.push('');
+        lines.push('Items:');
+        orderData.order.items.forEach((it) => {
+          lines.push(`${it.name} (${it.weight}) x${it.quantity} - Rs. ${it.price} each - Rs. ${it.total}`);
+        });
+        lines.push('');
+        lines.push(`Subtotal: Rs. ${orderData.order.subtotal}`);
+        lines.push(`Delivery Charge: Rs. ${orderData.order.deliveryCharge}`);
+        lines.push(`Total: Rs. ${orderData.order.total}`);
+
+        const waNumber = '94777525321'; // +94 77 752 5321
+        const waUrl = `https://wa.me/${waNumber}?text=${encodeURIComponent(lines.join('\n'))}`;
+
+        // Try to open WhatsApp Web / App with the prefilled message
+        try {
+          window.open(waUrl, '_blank');
+        } catch (err) {
+          console.error('Failed to open WhatsApp link:', err);
+        }
+
         // Clear the cart
         clearCart();
-        
-        // Show a success message
-        alert(`Order placed successfully! Your order ID is: ${response.orderId}`);
-        
-        // Redirect to home page
+
+        // Inform the user and navigate home
+        alert(`Order placed successfully! We opened WhatsApp to send your order. Your order ID: ${response.orderId}`);
         onNavigate('home');
       } else {
         alert('Something went wrong with your order. Please try again.');

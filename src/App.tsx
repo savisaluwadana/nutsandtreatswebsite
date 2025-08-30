@@ -13,15 +13,16 @@ import Footer from './components/Footer';
 import { CartProvider } from './context/CartContext';
 
 // Remove 'account' from Page type since we're removing authentication
-type Page = 'home' | 'category' | 'product' | 'cart' | 'checkout' | 'hampers' | 'corporate' | 'about' | 'contact';
+type Page = 'home' | 'category' | 'product' | 'products' | 'cart' | 'checkout' | 'hampers' | 'corporate' | 'about' | 'contact';
 
 function App() {
   const [currentPage, setCurrentPage] = useState<Page>('home');
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [selectedProduct, setSelectedProduct] = useState<number | null>(null);
 
-  const navigateToPage = (page: Page, category?: string, productId?: number) => {
-    setCurrentPage(page);
+  const navigateToPage = (page: string, category?: string, productId?: number, query?: string) => {
+    // Accept string here for flexibility (components may pass page as string literals).
+    setCurrentPage(page as Page);
     if (category) setSelectedCategory(category);
     if (productId) setSelectedProduct(productId);
   };
@@ -34,6 +35,8 @@ function App() {
         return <CategoryPage category={selectedCategory} onNavigate={navigateToPage} />;
       case 'product':
         return <ProductPage productId={selectedProduct} onNavigate={navigateToPage} />;
+      case 'products':
+        return <HomePage onNavigate={navigateToPage} />; // fallback: HomePage handles product showcases; we'll show ProductsPage via Header/View All
       case 'cart':
         return <CartPage onNavigate={navigateToPage} />;
       case 'checkout':
