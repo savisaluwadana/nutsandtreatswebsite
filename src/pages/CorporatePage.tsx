@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Building2, Users, Package, Award, Mail, Phone, MapPin, Star, CheckCircle } from 'lucide-react';
+import { Building2, Users, Package, Award, Mail, Phone, MapPin, Star } from 'lucide-react';
 
 interface CorporatePageProps {
   onNavigate: (page: 'home' | 'cart' | 'checkout') => void;

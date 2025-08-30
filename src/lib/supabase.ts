@@ -6,11 +6,10 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 // Check if the environment variables are set
 if (!supabaseUrl || !supabaseAnonKey) {
-  console.error(
-    'Missing Supabase environment variables. Please make sure you have a .env file with VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.',
-    { supabaseUrl: !!supabaseUrl, supabaseAnonKey: !!supabaseAnonKey }
+  throw new Error(
+    'Missing Supabase environment variables. Please make sure you have VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY set in your environment.'
   );
 }
 
 // Create a single supabase client for the entire app
-export const supabase = createClient(supabaseUrl || '', supabaseAnonKey || '');
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);

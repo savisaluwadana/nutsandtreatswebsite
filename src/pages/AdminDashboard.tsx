@@ -1,7 +1,7 @@
 import React from 'react';
 import { useAuth } from '../context/useAuth';
 
-const AdminDashboard: React.FC<{ onNavigate: (page: string) => void }> = ({ onNavigate }) => {
+const AdminDashboard: React.FC = () => {
   const { user } = useAuth();
 
   if (!user || !(user.user_metadata?.is_admin || (user.user_metadata && user.user_metadata.isAdmin))) {

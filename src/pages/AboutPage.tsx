@@ -1,5 +1,5 @@
 import React from 'react';
-import { Award, Users, Heart, TrendingUp, Calendar, MapPin } from 'lucide-react';
+import { Award, Heart, TrendingUp, Calendar } from 'lucide-react';
 
 interface AboutPageProps {
   onNavigate: (page: 'home' | 'category' | 'product' | 'cart' | 'checkout' | 'hampers' | 'corporate' | 'about' | 'contact', category?: string, productId?: number) => void;
