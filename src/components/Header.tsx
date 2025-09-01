@@ -14,7 +14,7 @@ const Header: React.FC<HeaderProps> = ({ onNavigate }) => {
   const [isShopDropdownOpen, setIsShopDropdownOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const { getTotalItems } = useCart();
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const { likedProducts } = useLikedProducts();
 
   const handleSearch = (e: React.FormEvent) => {
@@ -127,7 +127,7 @@ const Header: React.FC<HeaderProps> = ({ onNavigate }) => {
               )}
             </button>
             {/* Admin dashboard link - visible only for admins */}
-            {user && (user.user_metadata?.is_admin || (user.user_metadata && user.user_metadata.isAdmin)) && (
+            {user && isAdmin && (
               <button onClick={() => onNavigate('dashboard')} className="text-gray-700 hover:text-amber-600 font-medium flex items-center gap-2">
                 <ShieldCheck className="h-5 w-5" />
                 <span className="hidden md:inline">Dashboard</span>

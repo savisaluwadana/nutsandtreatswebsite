@@ -7,7 +7,7 @@ import TestimonialSection from '../components/TestimonialSection';
 import { products } from '../data/products';
 
 interface HomePageProps {
-  onNavigate: (page: 'home' | 'category' | 'product' | 'cart' | 'hampers' | 'corporate', category?: string, productId?: number) => void;
+  onNavigate: (page: string, category?: string, productId?: number) => void;
 }
 
 const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {

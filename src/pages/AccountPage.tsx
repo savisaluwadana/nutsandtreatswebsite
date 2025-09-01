@@ -32,8 +32,23 @@ const AccountPage: React.FC<AccountPageProps> = ({ onNavigate }) => {
         setIsRegister(false);
       } else {
         await signIn(email, password);
+        // After sign in, fetch the current user to get fresh metadata
+        const { data: userData, error: userError } = await (await import('../lib/supabase')).supabase.auth.getUser();
+        if (userError) {
+          console.error('Error fetching signed-in user:', userError);
+        }
+
+        const returnedUser = userData?.user;
+        const isAdminFromResponse = !!(returnedUser && (returnedUser.user_metadata?.is_admin || returnedUser.user_metadata?.isAdmin));
+        if (isAdminFromResponse) {
+          onNavigate('dashboard');
+          return;
+        }
       }
-      onNavigate('account');
+
+      // Fallback: if current user in context is admin, go to dashboard, otherwise account
+      const isAdmin = user && (user.user_metadata?.is_admin || user.user_metadata?.isAdmin);
+      if (isAdmin) onNavigate('dashboard'); else onNavigate('account');
     } catch (err: unknown) {
       const message = err && typeof err === 'object' && 'message' in err ? (err as { message?: string }).message : null;
       setError(message || 'Authentication failed');

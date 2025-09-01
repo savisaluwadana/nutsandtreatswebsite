@@ -2,7 +2,7 @@ import React from 'react';
 import { categories } from '../data/products';
 
 interface CategoryGridProps {
-  onNavigate: (page: 'category', category: string) => void;
+  onNavigate: (page: string, category: string) => void;
 }
 
 const CategoryGrid: React.FC<CategoryGridProps> = ({ onNavigate }) => {

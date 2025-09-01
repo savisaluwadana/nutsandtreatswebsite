@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import Header from './components/Header';
-import HomePage from './pages/HomePage.supabase'; // Using Supabase implementation
+import HomePage from './pages/HomePage'; // Using static data implementation
 import CategoryPage from './pages/CategoryPage.supabase'; // Using Supabase implementation
 import ProductPage from './pages/ProductPage.supabase'; // Using Supabase implementation
 import ProductsPage from './pages/ProductsPage.supabase';

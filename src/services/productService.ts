@@ -112,3 +112,49 @@ export async function getNewProducts(): Promise<Product[]> {
   
   return data || [];
 }
+
+// Create a new product
+export async function createProduct(product: Omit<Product, 'id' | 'created_at'>): Promise<Product> {
+  const { data, error } = await supabase
+    .from('products')
+    .insert(product)
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Error creating product:', error);
+    throw error;
+  }
+
+  return data as Product;
+}
+
+// Update an existing product
+export async function updateProduct(id: number, updates: Partial<Omit<Product, 'id' | 'created_at'>>): Promise<Product> {
+  const { data, error } = await supabase
+    .from('products')
+    .update(updates)
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) {
+    console.error(`Error updating product ${id}:`, error);
+    throw error;
+  }
+
+  return data as Product;
+}
+
+// Delete a product
+export async function deleteProduct(id: number): Promise<void> {
+  const { error } = await supabase
+    .from('products')
+    .delete()
+    .eq('id', id);
+
+  if (error) {
+    console.error(`Error deleting product ${id}:`, error);
+    throw error;
+  }
+}

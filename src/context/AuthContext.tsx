@@ -6,9 +6,11 @@ type AuthContextType = {
   session: Session | null;
   user: User | null;
   loading: boolean;
-  signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string) => Promise<void>;
+  signIn: (email: string, password: string) => Promise<unknown>;
+  signUp: (email: string, password: string) => Promise<unknown>;
   signOut: () => Promise<void>;
+  isAdmin: boolean;
+  userProfile: { isadmin?: boolean } | null;
 };
 
 const AuthContext = createContext<AuthContextType>({
@@ -18,6 +20,8 @@ const AuthContext = createContext<AuthContextType>({
   signIn: async () => {},
   signUp: async () => {},
   signOut: async () => {},
+  isAdmin: false,
+  userProfile: null,
 });
 
 // Export the context so it can be used in the useAuth hook
@@ -31,6 +35,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const [userProfile, setUserProfile] = useState<{ isadmin?: boolean } | null>(null);
+
+  const isAdmin = !!(userProfile && userProfile.isadmin === true) || !!(user && (user.user_metadata?.is_admin || user.user_metadata?.isAdmin));
 
   useEffect(() => {
     // Get current session with timeout
@@ -49,6 +56,22 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         
         setSession(session);
         setUser(session?.user || null);
+        // fetch profile if session user exists
+        if (session?.user?.id) {
+          try {
+            const { data: profileData, error: profileError } = await supabase
+              .from('user_profiles')
+              .select('isadmin')
+              .eq('id', session.user.id)
+              .single();
+            if (profileError) setUserProfile(null); else setUserProfile(profileData || null);
+          } catch (err) {
+            console.error('Failed to fetch user profile:', err);
+            setUserProfile(null);
+          }
+        } else {
+          setUserProfile(null);
+        }
       } catch (err) {
         console.error('Failed to get session:', err);
         setSession(null);
@@ -61,9 +84,24 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     getSession();
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setSession(session);
       setUser(session?.user || null);
+      if (session?.user?.id) {
+        try {
+          const { data: profileData, error: profileError } = await supabase
+            .from('user_profiles')
+            .select('isadmin')
+            .eq('id', session.user.id)
+            .single();
+          if (profileError) setUserProfile(null); else setUserProfile(profileData || null);
+        } catch (err) {
+          console.error('Failed to fetch user profile on auth change:', err);
+          setUserProfile(null);
+        }
+      } else {
+        setUserProfile(null);
+      }
       setLoading(false);
     });
 
@@ -74,14 +112,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   // Sign in with email and password
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) throw error;
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+  if (error) throw error;
+  return data;
   };
 
   // Sign up with email and password
   const signUp = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signUp({ email, password });
-    if (error) throw error;
+  const { data, error } = await supabase.auth.signUp({ email, password });
+  if (error) throw error;
+  return data;
   };
 
   // Sign out
@@ -91,7 +131,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ session, user, loading, signIn, signUp, signOut }}>
+    <AuthContext.Provider value={{ session, user, loading, signIn, signUp, signOut, isAdmin, userProfile }}>
       {children}
     </AuthContext.Provider>
   );

@@ -13,8 +13,34 @@ CREATE TABLE products (
   is_new BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+-- Create an optional user_profiles table for additional user info
+-- (defined early so RLS policies that reference it can be created safely)
+CREATE TABLE IF NOT EXISTS public.user_profiles (
+  id UUID PRIMARY KEY REFERENCES auth.users(id),
+  full_name TEXT,
+  phone TEXT,
+  isadmin BOOLEAN DEFAULT FALSE,
+  default_shipping_address JSONB,
+  default_billing_address JSONB,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
 
--- Add RLS (Row Level Security) policies for products
+-- Add RLS for user_profiles
+ALTER TABLE public.user_profiles ENABLE ROW LEVEL SECURITY;
+
+-- Users can view and update their own profiles
+CREATE POLICY "Users can view their own profile" ON public.user_profiles
+  FOR SELECT USING (auth.uid() = id);
+
+CREATE POLICY "Users can update their own profile" ON public.user_profiles
+  FOR UPDATE USING (auth.uid() = id)
+  WITH CHECK (auth.uid() = id);
+
+CREATE POLICY "Users can insert their own profile" ON public.user_profiles
+  FOR INSERT WITH CHECK (auth.uid() = id);
+
+-- Add RLS (Row Level Security) for products
 ALTER TABLE products ENABLE ROW LEVEL SECURITY;
 
 -- Everyone can view products
@@ -23,7 +49,19 @@ CREATE POLICY "Products are viewable by everyone" ON products
 
 -- Only authenticated users with admin rights can modify products
 CREATE POLICY "Products are editable by admins" ON products
-  FOR ALL USING (auth.jwt() ->> 'role' = 'admin');
+  FOR ALL
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.user_profiles 
+      WHERE id = auth.uid() AND isadmin = true
+    )
+  )
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM public.user_profiles 
+      WHERE id = auth.uid() AND isadmin = true
+    )
+  );
 
 -- Categories Table
 CREATE TABLE categories (
@@ -42,7 +80,19 @@ CREATE POLICY "Categories are viewable by everyone" ON categories
 
 -- Only authenticated users with admin rights can modify categories
 CREATE POLICY "Categories are editable by admins" ON categories
-  FOR ALL USING (auth.jwt() ->> 'role' = 'admin');
+  FOR ALL
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.user_profiles 
+      WHERE id = auth.uid() AND isadmin = true
+    )
+  )
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM public.user_profiles 
+      WHERE id = auth.uid() AND isadmin = true
+    )
+  );
 
 -- Orders Table
 CREATE TABLE orders (
@@ -69,7 +119,8 @@ CREATE POLICY "Users can insert their own orders" ON orders
 
 -- Users can update their own orders that are not completed
 CREATE POLICY "Users can update their own pending orders" ON orders
-  FOR UPDATE USING (auth.uid() = user_id AND status != 'completed');
+  FOR UPDATE USING (auth.uid() = user_id AND status != 'completed')
+  WITH CHECK (auth.uid() = user_id AND status != 'completed');
 
 -- Order Items Table
 CREATE TABLE order_items (
@@ -98,30 +149,8 @@ CREATE POLICY "Users can insert their own order items" ON order_items
       SELECT id FROM orders WHERE user_id = auth.uid()
     )
   );
-
--- Create an optional user_profiles table for additional user info
-CREATE TABLE user_profiles (
-  id UUID PRIMARY KEY REFERENCES auth.users(id),
-  full_name TEXT,
-  phone TEXT,
-  default_shipping_address JSONB,
-  default_billing_address JSONB,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
--- Add RLS for user_profiles
-ALTER TABLE user_profiles ENABLE ROW LEVEL SECURITY;
-
--- Users can view and update their own profiles
-CREATE POLICY "Users can view their own profile" ON user_profiles
-  FOR SELECT USING (auth.uid() = id);
-
-CREATE POLICY "Users can update their own profile" ON user_profiles
-  FOR UPDATE USING (auth.uid() = id);
-
-CREATE POLICY "Users can insert their own profile" ON user_profiles
-  FOR INSERT WITH CHECK (auth.uid() = id);
+-- user_profiles table and its RLS policies are declared earlier as
+-- public.user_profiles so we don't recreate them here.
 
 -- Create a function to create a profile when a new user signs up
 CREATE OR REPLACE FUNCTION public.handle_new_user() 
