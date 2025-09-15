@@ -134,10 +134,15 @@ const Header: React.FC<HeaderProps> = ({ onNavigate }) => {
               </button>
             )}
 
-            {/* User / Login icon */}
-            <button onClick={() => onNavigate(user ? 'account' : 'account')} className="text-gray-600 hover:text-amber-600 transition-colors">
-              <User className="h-6 w-6" />
-            </button>
+            {/* Admin indicator + User / Login icon */}
+            <div className="flex items-center gap-3">
+              <div className={`px-2 py-1 rounded-full text-xs font-semibold ${isAdmin ? 'bg-amber-600 text-white' : 'bg-gray-200 text-gray-700'}`} title={isAdmin ? 'You are an admin' : 'Not an admin'}>
+                {isAdmin ? 'Admin' : 'User'}
+              </div>
+              <button onClick={() => onNavigate(user ? 'account' : 'account')} className="text-gray-600 hover:text-amber-600 transition-colors">
+                <User className="h-6 w-6" />
+              </button>
+            </div>
             <button 
               onClick={() => onNavigate('cart')}
               className="relative text-gray-600 hover:text-amber-600 transition-colors"

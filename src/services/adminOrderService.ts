@@ -1,11 +1,19 @@
 import { supabase } from '../lib/supabase';
 
+export interface OrderItem {
+  id: number;
+  product_id: number;
+  name: string;
+  price: number;
+  items?: OrderItem[];
+}
+
 export interface Order {
   id: number;
   user_id?: string | null;
   customer_name?: string;
   customer_email?: string;
-  items?: any[];
+  items?: unknown[];
   subtotal?: number;
   total?: number;
   status?: string;
@@ -51,4 +59,20 @@ export async function getOrderById(id: number): Promise<Order | null> {
   }
 
   return data;
+}
+
+export async function updateOrderStatus(id: number, status: string): Promise<Order> {
+  const { data, error } = await supabase
+    .from('orders')
+    .update({ status })
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) {
+    console.error(`Error updating order ${id} status:`, error);
+    throw error;
+  }
+
+  return data as Order;
 }

@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { Product as UIProduct } from '../data/products';
+import { useAuth } from '../context/useAuth';
 import { Star, Heart, Share2, ShoppingCart, Truck, Shield, RotateCcw, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import ProductCard from '../components/ProductCard';
@@ -7,7 +9,7 @@ import { adaptProductToUIFormat, adaptProductsToUIFormat } from '../services/pro
 
 interface ProductPageProps {
   productId: number | null;
-  onNavigate: (page: 'home' | 'category' | 'product' | 'cart' | 'checkout', category?: string, productId?: number) => void;
+  onNavigate: (page: 'home' | 'category' | 'product' | 'products' | 'cart' | 'checkout', category?: string, productId?: number) => void;
 }
 
 const ProductPage: React.FC<ProductPageProps> = ({ productId, onNavigate }) => {
@@ -15,22 +17,33 @@ const ProductPage: React.FC<ProductPageProps> = ({ productId, onNavigate }) => {
   const [quantity, setQuantity] = useState(1);
   const [selectedImage, setSelectedImage] = useState(0);
   const [activeTab, setActiveTab] = useState('benefits');
-  const [product, setProduct] = useState<Product | null>(null);
-  const [relatedProducts, setRelatedProducts] = useState<any[]>([]);
+  const [product, setProduct] = useState<Partial<UIProduct> | null>(null);
+  const [relatedProducts, setRelatedProducts] = useState<Partial<UIProduct>[]>([]);
+  const { session, loading: authLoading } = useAuth();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { addToCart } = useCart();
 
   // Fetch product details and related products
   useEffect(() => {
+    // Derive id from hash if prop missing (refresh case)
+    let effectiveId = productId;
+    if (!effectiveId && window.location.hash.startsWith('#')) {
+      const raw = window.location.hash.substring(1);
+      const segs = raw.split('&');
+      segs.slice(1).forEach(seg => {
+        const [k, v] = seg.split('=');
+        if (k === 'id' && v) effectiveId = parseInt(v, 10);
+      });
+    }
     const fetchProductData = async () => {
-      if (!productId) return;
+      if (!effectiveId) { setLoading(false); return; }
       
       try {
         setLoading(true);
         
         // Fetch product details
-        const productData = await getProductById(productId);
+        const productData = await getProductById(effectiveId);
         if (!productData) {
           setError("Product not found");
           return;
@@ -41,13 +54,18 @@ const ProductPage: React.FC<ProductPageProps> = ({ productId, onNavigate }) => {
         setProduct(adaptedProduct);
         
         // Fetch related products (products in same category)
-        const allProducts = await getAllProducts();
-        const filteredProducts = allProducts.filter(
-          p => p.category === productData.category && p.id !== productId
-        ).slice(0, 4);
-        
-        const adaptedRelatedProducts = adaptProductsToUIFormat(filteredProducts);
-        setRelatedProducts(adaptedRelatedProducts);
+  const fetchRelated = async (tryNum = 0) => {
+          const allProducts = await getAllProducts();
+          const filteredProducts = allProducts.filter(
+            p => p.category === productData.category && p.id !== effectiveId
+          ).slice(0, 4);
+          const adaptedRelatedProducts = adaptProductsToUIFormat(filteredProducts);
+          setRelatedProducts(adaptedRelatedProducts);
+          if ((adaptedRelatedProducts?.length || 0) === 0 && tryNum < 2) {
+            setTimeout(() => fetchRelated(tryNum + 1), 600);
+          }
+        };
+        await fetchRelated();
         
       } catch (err) {
         console.error("Error fetching product:", err);
@@ -60,17 +78,87 @@ const ProductPage: React.FC<ProductPageProps> = ({ productId, onNavigate }) => {
     fetchProductData();
   }, [productId]);
 
+  // Auth-based refetch after login if product failed earlier
+  useEffect(() => {
+    if (authLoading) return;
+    if (session && !product && !loading) {
+      // trigger a retry using current productId (or hash id fallback) by forcing effect dependency
+      (async () => {
+        try {
+          let effectiveId = productId;
+          if (!effectiveId && window.location.hash.startsWith('#')) {
+            const raw = window.location.hash.substring(1);
+            raw.split('&').slice(1).forEach(seg => {
+              const [k, v] = seg.split('=');
+              if (k === 'id' && v) effectiveId = parseInt(v, 10);
+            });
+          }
+          if (!effectiveId) return;
+          setLoading(true);
+          const productData = await getProductById(effectiveId);
+          if (productData) {
+            setProduct(adaptProductToUIFormat(productData));
+            const allProducts = await getAllProducts();
+            const filteredProducts = allProducts.filter(p => p.category === productData.category && p.id !== effectiveId).slice(0,4);
+            setRelatedProducts(adaptProductsToUIFormat(filteredProducts));
+            setError(null);
+          }
+        } catch (e) {
+          console.warn('Auth refetch product failed', e);
+        } finally {
+          setLoading(false);
+        }
+      })();
+    }
+  }, [authLoading, session, product, loading, productId]);
+
+  // Listen for app-level navigation events to retry fetch (covers back/forward)
+  useEffect(() => {
+    const onAppNavigate = () => {
+      // trigger the main effect by calling the same fetch logic via productId change
+      // simplest approach: if productId exists, call fetch sequence directly
+      (async () => {
+        let effectiveId = productId;
+        if (!effectiveId && window.location.hash.startsWith('#')) {
+          const raw = window.location.hash.substring(1);
+          raw.split('&').slice(1).forEach(seg => {
+            const [k, v] = seg.split('=');
+            if (k === 'id' && v) effectiveId = parseInt(v, 10);
+          });
+        }
+        if (!effectiveId) return;
+        try {
+          setLoading(true);
+          const productData = await getProductById(effectiveId);
+          if (productData) {
+            setProduct(adaptProductToUIFormat(productData));
+            const allProducts = await getAllProducts();
+            const filteredProducts = allProducts.filter(p => p.category === productData.category && p.id !== effectiveId).slice(0,4);
+            setRelatedProducts(adaptProductsToUIFormat(filteredProducts));
+            setError(null);
+          }
+        } catch (e) {
+          console.warn('App navigate product fetch failed', e);
+        } finally {
+          setLoading(false);
+        }
+      })();
+    };
+    window.addEventListener('app:navigate', onAppNavigate);
+    return () => window.removeEventListener('app:navigate', onAppNavigate);
+  }, [productId]);
+
   const handleAddToCart = () => {
     if (!product) return;
     
     const selectedWeightInfo = product.weights?.[selectedWeight] || { size: 'Default', price: product.price };
     
     addToCart({
-      id: product.id,
-      name: product.name,
-      price: selectedWeightInfo.price,
+      id: product.id || 0,
+      name: product.name || 'Product',
+      price: selectedWeightInfo.price || 0,
       weight: selectedWeightInfo.size,
-      image: product.image
+      image: product.image || ''
     });
   };
 
@@ -113,11 +201,14 @@ const ProductPage: React.FC<ProductPageProps> = ({ productId, onNavigate }) => {
       {/* Breadcrumb */}
       <div className="mb-8">
         <button 
-          onClick={() => onNavigate('category', product.category)}
+          onClick={() => {
+            if (product.category) onNavigate('category', product.category as string);
+            else onNavigate('products');
+          }}
           className="text-amber-600 hover:text-amber-700 inline-flex items-center"
         >
           <ChevronLeft className="h-4 w-4 mr-1" />
-          Back to {product.category.charAt(0).toUpperCase() + product.category.slice(1)}
+          {product.category ? `Back to ${(product.category as string).charAt(0).toUpperCase() + (product.category as string).slice(1)}` : 'Back to Products'}
         </button>
       </div>
 
@@ -133,16 +224,16 @@ const ProductPage: React.FC<ProductPageProps> = ({ productId, onNavigate }) => {
             />
             
             {/* Image Navigation */}
-            {(product.images?.length > 1) && (
+            {(product.images && product.images.length > 1) && (
               <>
                 <button 
-                  onClick={() => setSelectedImage(prev => (prev === 0 ? product.images.length - 1 : prev - 1))}
+                  onClick={() => setSelectedImage(prev => (prev === 0 ? (product.images ? product.images.length - 1 : 0) : prev - 1))}
                   className="absolute top-1/2 left-4 -translate-y-1/2 p-2 rounded-full bg-white/80 hover:bg-white shadow-md"
                 >
                   <ChevronLeft className="h-5 w-5 text-gray-700" />
                 </button>
                 <button 
-                  onClick={() => setSelectedImage(prev => (prev === product.images.length - 1 ? 0 : prev + 1))}
+                  onClick={() => setSelectedImage(prev => (product.images && prev === product.images.length - 1 ? 0 : prev + 1))}
                   className="absolute top-1/2 right-4 -translate-y-1/2 p-2 rounded-full bg-white/80 hover:bg-white shadow-md"
                 >
                   <ChevronRight className="h-5 w-5 text-gray-700" />
@@ -221,7 +312,7 @@ const ProductPage: React.FC<ProductPageProps> = ({ productId, onNavigate }) => {
               <div className="mb-6">
                 <h3 className="font-semibold text-gray-900 mb-2">Size</h3>
                 <div className="flex flex-wrap gap-2">
-                  {product.weights.map((weight: any, index: number) => (
+                  {product.weights.map((weight: { size: string; price: number; originalPrice?: number }, index: number) => (
                     <button
                       key={index}
                       onClick={() => setSelectedWeight(index)}
@@ -358,12 +449,15 @@ const ProductPage: React.FC<ProductPageProps> = ({ productId, onNavigate }) => {
                 <div className="bg-gray-50 rounded-lg p-6">
                   <h4 className="text-lg font-semibold text-gray-900 mb-3">Per 100g</h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {Object.entries(product.nutritionPer100g).map(([key, value]) => (
-                      <div key={key} className="flex justify-between py-2 border-b border-gray-200">
-                        <span className="font-medium text-gray-700">{key}</span>
-                        <span className="text-gray-600">{value}</span>
-                      </div>
-                    ))}
+                    {Object.entries(product.nutritionPer100g).map(([key, value]) => {
+                      const displayValue = typeof value === 'string' ? value : String(value);
+                      return (
+                        <div key={key} className="flex justify-between py-2 border-b border-gray-200">
+                          <span className="font-medium text-gray-700">{key}</span>
+                          <span className="text-gray-600">{displayValue}</span>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               ) : (

@@ -45,8 +45,9 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onNavigate }) => {
   };
 
   const handleCardClick = () => {
-    if (product.id && product.category) {
-      onNavigate('product', product.category, product.id);
+    if (product.id) {
+      const cat = product.category || 'uncategorized';
+      onNavigate('product', cat, product.id);
     }
   };
 

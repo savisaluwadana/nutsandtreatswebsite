@@ -63,3 +63,22 @@ The project uses Supabase Authentication to handle user sign up, sign in, and se
 - Session management
 - Protected routes for user account pages
 - User profiles
+
+## Seeding the database
+
+1. Ensure your Supabase project has the schema applied (use `complete_schema.sql` in the SQL editor).
+2. Put your Supabase credentials in the project `.env` file:
+
+```
+VITE_SUPABASE_URL=https://your-project-url.supabase.co
+VITE_SUPABASE_ANON_KEY=your-anon-key-here
+```
+
+3. Install dependencies and run the seeder:
+
+```powershell
+npm install
+npm run seed:products
+```
+
+The seeder will upsert a few default categories and example products.

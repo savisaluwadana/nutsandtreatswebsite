@@ -1,17 +1,27 @@
 import { Product as SupabaseProduct } from './productService';
 import { Product as UIProduct } from '../data/products';
 
+type ExtendedSupabaseProduct = Omit<SupabaseProduct, 'stock_quantity'> & {
+  stock_quantity?: number;
+  category_id?: string | number;
+  tags?: string[];
+  stock?: number;
+  created_at?: string;
+};
+
 /**
  * Adapts a product from the Supabase database format to the UI format
  */
 export const adaptProductToUIFormat = (product: SupabaseProduct): Partial<UIProduct> => {
+  const p = product as ExtendedSupabaseProduct;
+  const resolvedCategory = (p as { category?: string }).category || p.category_id || 'uncategorized';
   return {
     id: product.id,
     name: product.name,
     description: product.description || '',
     shortDescription: product.description?.substring(0, 100) || '',
     price: product.price,
-    category: product.category,
+    category: String(resolvedCategory),
     image: product.image_url,
     images: [product.image_url],
     isBestseller: product.is_bestseller,
@@ -22,8 +32,7 @@ export const adaptProductToUIFormat = (product: SupabaseProduct): Partial<UIProd
       { size: 'Default', price: product.price }
     ],
   // attempt to carry through tags from the DB if present; fall back to empty array
-  // using a relaxed access in case the DB row doesn't include tags
-  tags: (product as any).tags || [],
+  tags: p.tags || [],
     benefits: [],
     nutritionPer100g: {},
   allergens: [],
@@ -32,9 +41,9 @@ export const adaptProductToUIFormat = (product: SupabaseProduct): Partial<UIProd
   shelfLife: '',
   howToUse: [],
   // include stock quantity so the UI can filter by availability
-  stock: (product as any).stock_quantity ?? (product as any).stock ?? 0,
+  stock: p.stock_quantity ?? p.stock ?? 0,
   // preserve created_at for sorting if available
-  createdAt: (product as any).created_at || null,
+  createdAt: p.created_at || null,
   };
 };
 

@@ -5,9 +5,10 @@ import ProductShowcase from '../components/ProductShowcase';
 import TrustSection from '../components/TrustSection';
 import TestimonialSection from '../components/TestimonialSection';
 import { getBestsellerProducts, getNewProducts, Product } from '../services/productService';
+import { useAuth } from '../context/useAuth';
 
 interface HomePageProps {
-  onNavigate: (page: 'home' | 'category' | 'product' | 'cart' | 'checkout' | 'hampers' | 'corporate' | 'about' | 'contact' | 'account', category?: string, productId?: number) => void;
+  onNavigate: (page: string, category?: string, productId?: number, query?: string) => void;
 }
 
 const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
@@ -36,6 +37,62 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
     };
 
     fetchProducts();
+  }, []);
+
+  // Auth-aware refetch: re-run product fetch when auth stabilizes (RLS may change results)
+  const { session, loading: authLoading } = useAuth();
+  useEffect(() => {
+    if (authLoading) return;
+    if (!session) return;
+    let cancelled = false;
+    const fetchHome = async (attempt = 0) => {
+      try {
+        console.debug('[HomePage] fetchHome attempt', attempt);
+        setLoading(true);
+        const [bestsellerData, newArrivalsData] = await Promise.all([
+          getBestsellerProducts(),
+          getNewProducts()
+        ]);
+        if (!cancelled) {
+          setBestsellers(bestsellerData);
+          setNewArrivals(newArrivalsData);
+        }
+        if ((newArrivalsData?.length || 0) === 0 && attempt < 2) {
+          console.debug('[HomePage] new arrivals empty, retrying', attempt + 1);
+          setTimeout(() => fetchHome(attempt + 1), 700);
+        }
+      } catch (err) {
+        console.warn('Auth-based refetch (home) failed', err);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+
+    fetchHome();
+    return () => { cancelled = true; };
+  }, [authLoading, session]);
+
+  // Refetch when app navigation occurs (back/forward or programmatic navigation)
+  useEffect(() => {
+    const onAppNavigate = () => {
+      (async () => {
+        try {
+          setLoading(true);
+          const [bestsellerData, newArrivalsData] = await Promise.all([
+            getBestsellerProducts(),
+            getNewProducts()
+          ]);
+          setBestsellers(bestsellerData);
+          setNewArrivals(newArrivalsData);
+        } catch (err) {
+          console.warn('App navigate home fetch failed', err);
+        } finally {
+          setLoading(false);
+        }
+      })();
+    };
+    window.addEventListener('app:navigate', onAppNavigate);
+    return () => window.removeEventListener('app:navigate', onAppNavigate);
   }, []);
 
   // Function to convert Supabase products to the format expected by ProductShowcase

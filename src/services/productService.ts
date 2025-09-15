@@ -17,7 +17,8 @@ export interface Product {
 export async function getAllProducts(): Promise<Product[]> {
   const { data, error } = await supabase
     .from('products')
-    .select('*');
+    .select('*')
+    .order('created_at', { ascending: false });
   
   if (error) {
     console.error('Error fetching products:', error);
@@ -29,41 +30,53 @@ export async function getAllProducts(): Promise<Product[]> {
 
 // Fetch products by category
 export async function getProductsByCategory(category: string): Promise<Product[]> {
-  // Try exact match first
-  const { data, error } = await supabase
-    .from('products')
-    .select('*')
-    .eq('category', category);
-
-  if (error) {
-    console.error(`Error fetching ${category} products (exact match):`, error);
-    // don't throw yet; attempt fallback queries
-  }
-
-  if (data && data.length > 0) return data;
-
-  // Fallbacks: try case-insensitive partial matches; handle slug -> name (hyphens -> spaces)
+  // Some schemas use 'category' (text), others 'category_id' referencing categories table.
+  // We'll attempt both gracefully.
+  const targetColumns = ['category', 'category_id'];
+  // Normalize incoming slug variants for fuzzy searching.
   const variants = [
-    category.replace(/-/g, ' '), // dry-fruits -> dry fruits
-    category.replace(/-/g, ''),  // dry-fruits -> dryfruits
-    category // original
-  ];
+    category,
+    category.replace(/-/g, ' '),
+    category.replace(/-/g, ''),
+  ].filter((v, i, arr) => arr.indexOf(v) === i);
 
-  for (const v of variants) {
-    const { data: altData, error: altError } = await supabase
-      .from('products')
-      .select('*')
-      .ilike('category', `%${v}%`);
-
-    if (altError) {
-      console.error(`Error fetching ${category} products (variant '${v}') :`, altError);
-      continue;
+  for (const col of targetColumns) {
+    // Try exact matches across variants
+    for (const v of variants) {
+      try {
+        const { data, error } = await supabase
+          .from('products')
+          .select('*')
+          .eq(col, v);
+        if (error) {
+          // If column doesn't exist (Postgres undefined_column), break to next column name
+          if ((error as { code?: string }).code === '42703') break;
+          console.warn(`Exact match query failed for ${col}='${v}':`, error.message);
+        } else if (data && data.length > 0) {
+          return data;
+        }
+      } catch (e) {
+        console.warn(`Unexpected error querying ${col}='${v}':`, e);
+      }
     }
-
-    if (altData && altData.length > 0) return altData;
+    // Fallback ILIKE partials for this column
+    for (const v of variants) {
+      try {
+        const { data, error } = await supabase
+          .from('products')
+          .select('*')
+          .ilike(col, `%${v}%`);
+        if (error) {
+          if ((error as { code?: string }).code === '42703') break; // move to next column name
+          console.warn(`ILIKE query failed for ${col} ~ '%${v}%':`, error.message);
+        } else if (data && data.length > 0) {
+          return data;
+        }
+      } catch (e) {
+        console.warn(`Unexpected error fuzzy querying ${col} ~ '%${v}%':`, e);
+      }
+    }
   }
-
-  // nothing found
   return [];
 }
 
@@ -88,7 +101,8 @@ export async function getBestsellerProducts(): Promise<Product[]> {
   const { data, error } = await supabase
     .from('products')
     .select('*')
-    .eq('is_bestseller', true);
+    .eq('is_bestseller', true)
+    .order('created_at', { ascending: false });
   
   if (error) {
     console.error('Error fetching bestseller products:', error);
@@ -103,7 +117,8 @@ export async function getNewProducts(): Promise<Product[]> {
   const { data, error } = await supabase
     .from('products')
     .select('*')
-    .eq('is_new', true);
+    .eq('is_new', true)
+    .order('created_at', { ascending: false });
   
   if (error) {
     console.error('Error fetching new products:', error);

@@ -5,6 +5,7 @@ import ProductCard from '../components/ProductCard';
 import { getProductsByCategory, getAllProducts } from '../services/productService';
 import { adaptProductsToUIFormat } from '../services/productAdapter';
 import { useCart } from '../context/CartContext';
+import { useAuth } from '../context/useAuth';
 
 interface CategoryPageProps {
   category: string;
@@ -24,6 +25,7 @@ const CategoryPage: React.FC<CategoryPageProps> = ({ category, onNavigate }) => 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [categoryProducts, setCategoryProducts] = useState<Partial<Product>[]>([]);
+    const { session, loading: authLoading } = useAuth();
 
   const { addToHamper } = useCart();
 
@@ -48,6 +50,40 @@ const CategoryPage: React.FC<CategoryPageProps> = ({ category, onNavigate }) => 
     if (category) {
       fetchProducts();
     }
+  }, [category]);
+
+  // Auth-based refetch to pick up RLS-visible fields after login
+  useEffect(() => {
+    if (authLoading) return;
+    if (session) {
+      (async () => {
+        try {
+          const products = category === 'all' ? await getAllProducts() : await getProductsByCategory(category);
+          setCategoryProducts(adaptProductsToUIFormat(products));
+        } catch (e) {
+          console.warn('Auth refetch category failed', e);
+        }
+      })();
+    }
+  }, [authLoading, session, category]);
+
+  // Listen for app navigation events to refetch on visit/back/forward
+  useEffect(() => {
+    const onAppNavigate = () => {
+      (async () => {
+        try {
+          setLoading(true);
+          const products = category === 'all' ? await getAllProducts() : await getProductsByCategory(category);
+          setCategoryProducts(adaptProductsToUIFormat(products));
+        } catch (e) {
+          console.warn('App navigate category fetch failed', e);
+        } finally {
+          setLoading(false);
+        }
+      })();
+    };
+    window.addEventListener('app:navigate', onAppNavigate);
+    return () => window.removeEventListener('app:navigate', onAppNavigate);
   }, [category]);
 
   // Get all unique tags for filtering

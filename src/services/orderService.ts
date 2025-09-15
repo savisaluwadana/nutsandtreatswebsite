@@ -32,26 +32,34 @@ export interface OrderData {
 
 // This is a mock service that simulates sending the order to a backend
 // In a real application, this would make API calls to your backend
-export const submitOrder = async (orderData: OrderData): Promise<{ success: boolean; orderId: string }> => {
-  // Simulate an API call with a delay
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      // Generate a random order ID
-      const orderId = Math.random().toString(36).substring(2, 10).toUpperCase();
-      
-      // Log the order data (in a real app, this would be sent to the server)
-      console.log('Order submitted:', orderData);
-      if (orderData.userId) {
-        console.log('Order associated with user:', orderData.userId);
-      } else {
-        console.log('Guest order (no user)');
-      }
-      
-      // Return a success response with the order ID
-      resolve({
-        success: true,
-        orderId: orderId
-      });
-    }, 1500); // 1.5 second delay to simulate network request
-  });
+import { supabase } from '../lib/supabase';
+
+export const submitOrder = async (orderData: OrderData): Promise<{ success: boolean; orderId: string | number }> => {
+  // Persist order to Supabase `orders` table.
+  try {
+    const insertPayload = {
+      user_id: orderData.userId || null,
+      customer_name: orderData.customer.fullName,
+      customer_email: orderData.customer.email,
+      customer_phone: orderData.customer.phone,
+      customer_address: `${orderData.customer.address || ''}${orderData.customer.city ? ', ' + orderData.customer.city : ''}`,
+      notes: orderData.customer.notes || null,
+      items: orderData.order.items,
+      subtotal: orderData.order.subtotal,
+      delivery_charge: orderData.order.deliveryCharge,
+      total: orderData.order.total,
+      status: 'pending',
+      placed_at: orderData.orderDate,
+    };
+
+  type OrderRow = { id: number } & Record<string, unknown>;
+  const { data, error } = await supabase.from('orders').insert(insertPayload).select().single();
+  if (error) throw error;
+
+  // Return the newly created order id (Postgres primary key)
+  return { success: true, orderId: (data as OrderRow).id };
+  } catch (err) {
+    console.error('Failed to persist order:', err);
+    return { success: false, orderId: '' };
+  }
 };

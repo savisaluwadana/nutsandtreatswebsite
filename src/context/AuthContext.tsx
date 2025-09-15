@@ -36,77 +36,119 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [userProfile, setUserProfile] = useState<{ isadmin?: boolean } | null>(null);
+  const [isAdminFlag, setIsAdminFlag] = useState<boolean>(false);
 
-  const isAdmin = !!(userProfile && userProfile.isadmin === true) || !!(user && (user.user_metadata?.is_admin || user.user_metadata?.isAdmin));
+  const isAdmin = isAdminFlag || !!(userProfile && userProfile.isadmin === true) || !!(user && (user.user_metadata?.is_admin || user.user_metadata?.isAdmin));
 
   useEffect(() => {
-    // Get current session with timeout
-    const getSession = async () => {
+  let initialized = false;
+  let safetyTimer: number | undefined;
+
+    // Get current session (no artificial timeout) and subscribe to auth events
+    const init = async () => {
       try {
-        const result = await Promise.race([
-          supabase.auth.getSession(),
-          new Promise<never>((_, reject) => setTimeout(() => reject(new Error('Session fetch timeout')), 5000))
-        ]);
-        
-        const { data: { session }, error } = result;
-        
-        if (error) {
-          console.error('Error getting session:', error);
-        }
-        
-        setSession(session);
-        setUser(session?.user || null);
-        // fetch profile if session user exists
-        if (session?.user?.id) {
+        const resp = await supabase.auth.getSession();
+        const { data: { session: initialSession }, error } = resp;
+        if (process.env.NODE_ENV === 'development') console.debug('Auth getSession response', resp);
+        if (error) console.error('Error getting session:', error);
+
+        // set immediate values if present
+        setSession(initialSession);
+        setUser(initialSession?.user || null);
+
+        // fetch profile/admin if we already have a session
+        if (initialSession?.user?.id) {
           try {
-            const { data: profileData, error: profileError } = await supabase
-              .from('user_profiles')
-              .select('isadmin')
-              .eq('id', session.user.id)
-              .single();
-            if (profileError) setUserProfile(null); else setUserProfile(profileData || null);
+            const [profileRes, adminRes] = await Promise.all([
+              supabase.from('user_profiles').select('isadmin').eq('id', initialSession.user.id).single(),
+              supabase.from('admins').select('id').eq('id', initialSession.user.id).maybeSingle(),
+            ]);
+            const profileData = profileRes.data as { isadmin?: boolean } | null;
+            if (profileRes.error) setUserProfile(null); else setUserProfile(profileData || null);
+            const adminData = adminRes.data as { id?: string } | null;
+            setIsAdminFlag(!!(adminData && adminData.id));
+            if (profileData && profileData.isadmin === true) setIsAdminFlag(true);
           } catch (err) {
-            console.error('Failed to fetch user profile:', err);
+            console.error('Failed to fetch user profile during init:', err);
             setUserProfile(null);
+            setIsAdminFlag(false);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to get session during init:', err);
+        setSession(null);
+        setUser(null);
+      }
+
+      // Subscribe to auth state changes; rely on the subscription to mark initialization complete
+  const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, sessionPayload) => {
+        if (process.env.NODE_ENV === 'development') console.debug('onAuthStateChange', event, sessionPayload);
+
+        setSession(sessionPayload);
+        setUser(sessionPayload?.user || null);
+
+        if (sessionPayload?.user?.id) {
+          try {
+            // retry wrapper for mobile flaky network
+            type ProfileRes = { data: { isadmin?: boolean } | null; error: unknown };
+            type AdminRes = { data: { id?: string } | null; error: unknown };
+            const fetchProfileAndAdmin = async (attempt = 1): Promise<[ProfileRes, AdminRes]> => {
+              try {
+                const [profileRes, adminRes] = await Promise.all([
+                  supabase.from('user_profiles').select('isadmin').eq('id', sessionPayload.user.id).single(),
+                  supabase.from('admins').select('id').eq('id', sessionPayload.user.id).maybeSingle(),
+                ]);
+                return [profileRes, adminRes];
+              } catch (err) {
+                if (attempt < 3) return fetchProfileAndAdmin(attempt + 1);
+                throw err;
+              }
+            };
+            const [profileRes, adminRes] = await fetchProfileAndAdmin();
+            const profileData = profileRes.data as { isadmin?: boolean } | null;
+            if (profileRes.error) setUserProfile(null); else setUserProfile(profileData || null);
+            const adminData = adminRes.data as { id?: string } | null;
+            setIsAdminFlag(!!(adminData && adminData.id));
+            if (profileData && profileData.isadmin === true) setIsAdminFlag(true);
+          } catch (err) {
+            console.error('Failed to fetch user profile on auth change:', err);
+            setUserProfile(null);
+            setIsAdminFlag(false);
           }
         } else {
           setUserProfile(null);
+          setIsAdminFlag(false);
         }
-      } catch (err) {
-        console.error('Failed to get session:', err);
-        setSession(null);
-        setUser(null);
-      } finally {
-        setLoading(false);
-      }
+
+        if (!initialized) {
+          initialized = true;
+          setLoading(false);
+          if (safetyTimer) window.clearTimeout(safetyTimer);
+        }
+      });
+
+      // Safety: if no auth event arrives in 3s, end loading (handles some mobile webview cases)
+      safetyTimer = window.setTimeout(() => {
+        if (!initialized) {
+          initialized = true;
+            setLoading(false);
+        }
+      }, 3000);
+
+      return () => {
+        subscription.unsubscribe();
+        if (safetyTimer) window.clearTimeout(safetyTimer);
+      };
     };
 
-    getSession();
+    // start init
+    const cleanupPromise = init();
 
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      setSession(session);
-      setUser(session?.user || null);
-      if (session?.user?.id) {
-        try {
-          const { data: profileData, error: profileError } = await supabase
-            .from('user_profiles')
-            .select('isadmin')
-            .eq('id', session.user.id)
-            .single();
-          if (profileError) setUserProfile(null); else setUserProfile(profileData || null);
-        } catch (err) {
-          console.error('Failed to fetch user profile on auth change:', err);
-          setUserProfile(null);
-        }
-      } else {
-        setUserProfile(null);
-      }
-      setLoading(false);
-    });
-
+    // ensure we return a cleanup that cancels subscription when effect unmounts
     return () => {
-      subscription.unsubscribe();
+      cleanupPromise.then((maybeCleanup) => {
+        if (typeof maybeCleanup === 'function') maybeCleanup();
+      }).catch(() => {});
     };
   }, []);
 

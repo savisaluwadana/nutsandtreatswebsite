@@ -3,17 +3,21 @@ import { ChevronDown } from 'lucide-react';
 import ProductCard from '../components/ProductCard';
 import { getAllProducts } from '../services/productService';
 import { adaptProductsToUIFormat } from '../services/productAdapter';
+import { useToast } from '../context/ToastContext';
+import { useAuth } from '../context/useAuth';
 
 interface ProductsPageProps {
   query?: string;
   onNavigate: (page: string, category?: string, productId?: number, query?: string) => void;
+  navCounter?: number;
 }
 
-const ProductsPage: React.FC<ProductsPageProps> = ({ query = '', onNavigate }) => {
+const ProductsPage: React.FC<ProductsPageProps> = ({ query = '', onNavigate, navCounter = 0 }) => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [fetchRetry, setFetchRetry] = useState(0);
 
   // Filters
   const [sortBy, setSortBy] = useState('popularity');
@@ -26,20 +30,41 @@ const ProductsPage: React.FC<ProductsPageProps> = ({ query = '', onNavigate }) =
   const [showNewOnly, setShowNewOnly] = useState(false);
 
   useEffect(() => {
-    const fetchProducts = async () => {
+    let cancelled = false;
+    const fetchProducts = async (attempt = 0) => {
       try {
+        console.debug('[ProductsPage] fetchProducts attempt', attempt, { attempt });
         setLoading(true);
         const all = await getAllProducts();
-        setProducts(adaptProductsToUIFormat(all));
+        const adapted = adaptProductsToUIFormat(all);
+        if (!cancelled) setProducts(adapted);
+
+        // If results are unexpectedly empty, retry a couple times (handles RLS/auth race)
+        if ((!adapted || adapted.length === 0) && attempt < 2) {
+          console.debug('[ProductsPage] empty result, scheduling retry', attempt + 1);
+          setTimeout(() => fetchProducts(attempt + 1), 800);
+        }
       } catch (err) {
         console.error('Error fetching all products:', err);
-        setError('Failed to load products.');
+        if (!cancelled) setError('Failed to load products.');
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
 
-    fetchProducts();
+  fetchProducts(fetchRetry);
+  console.debug('[ProductsPage] scheduled fetch (initial)');
+    return () => { cancelled = true; };
+  }, [navCounter, query, fetchRetry]);
+
+  // Listen for app-level navigation events to trigger refetch (back/forward or programmatic nav)
+  useEffect(() => {
+    const onAppNavigate = () => {
+      console.debug('[ProductsPage] received app:navigate -> triggering retry', { navCounter, query });
+      setFetchRetry(v => v + 1);
+    };
+    window.addEventListener('app:navigate', onAppNavigate);
+    return () => window.removeEventListener('app:navigate', onAppNavigate);
   }, []);
 
   const allTags = useMemo(() => {
@@ -53,6 +78,24 @@ const ProductsPage: React.FC<ProductsPageProps> = ({ query = '', onNavigate }) =
     products.forEach(p => p.category && cats.add(p.category));
     return Array.from(cats);
   }, [products]);
+
+  const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
+  const { push } = useToast();
+  const { session, loading: authLoading } = useAuth();
+
+  // Refetch after auth resolves (e.g., RLS allowed fields appear post-login)
+  useEffect(() => {
+    if (authLoading) return;
+    if (!session) return;
+    (async () => {
+      try {
+        const all = await getAllProducts();
+        setProducts(adaptProductsToUIFormat(all));
+      } catch (e) {
+        console.warn('Auth-based refetch (products) failed', e);
+      }
+    })();
+  }, [authLoading, session]);
 
   const toggleCategory = (cat: string) => {
     if (selectedCategories.includes(cat)) setSelectedCategories(selectedCategories.filter(c => c !== cat));
@@ -208,6 +251,30 @@ const ProductsPage: React.FC<ProductsPageProps> = ({ query = '', onNavigate }) =
         </div>
 
         <div className="lg:w-3/4">
+          {/* Mobile filters toggle */}
+          <div className="mb-4 flex items-center justify-between lg:hidden">
+            <button onClick={() => setIsMobileFiltersOpen(v => !v)} className="px-3 py-2 bg-amber-600 text-white rounded">Filters</button>
+            <div className="text-gray-600">{filteredProducts.length} results</div>
+          </div>
+
+          {/* Mobile filter panel */}
+          {isMobileFiltersOpen && (
+            <div className="relative rounded-2xl p-5 shadow-lg mb-6 lg:hidden overflow-hidden bg-gradient-to-br from-white to-amber-50 border border-amber-100">
+              <div className="absolute inset-0 opacity-40 pointer-events-none" style={{background:'radial-gradient(circle at 85% 15%, rgba(251,191,36,.4), transparent 60%)'}}></div>
+              <h3 className="font-semibold mb-4 text-gray-900 flex items-center justify-between">Categories <span className="text-xs font-normal text-gray-500">{selectedCategories.length} selected</span></h3>
+              <div className="flex flex-wrap gap-2 relative z-10">
+                {allCategories.map(cat => (
+                  <button key={cat} onClick={() => toggleCategory(cat)} className={`px-3 py-1.5 rounded-full text-sm font-medium transition shadow-sm ${selectedCategories.includes(cat) ? 'bg-gradient-to-r from-amber-600 to-orange-500 text-white shadow-amber-500/30' : 'bg-white text-gray-700 border border-gray-200 hover:border-amber-400'}`}>
+                    {cat}
+                  </button>
+                ))}
+              </div>
+              <div className="mt-5 flex gap-2 relative z-10">
+                <button onClick={() => { setSelectedCategories([]); setSelectedTags([]); setOnlyInStock(false); setShowBestsellersOnly(false); setShowNewOnly(false); setMinRating(0); setPriceRange([0,10000]); push('Filters reset', { type: 'info' }); }} className="px-4 py-2 rounded-lg text-sm font-medium bg-white/70 backdrop-blur hover:bg-white border border-gray-200 transition">Reset</button>
+                <button onClick={() => { setIsMobileFiltersOpen(false); push(`${selectedCategories.length} category filter${selectedCategories.length===1?'':'s'} applied`, { type: 'success', duration: 2000 }); }} className="flex-1 px-4 py-2 rounded-lg text-sm font-semibold bg-gradient-to-r from-amber-600 to-orange-500 text-white shadow hover:shadow-lg transition">Apply</button>
+              </div>
+            </div>
+          )}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
             <p className="text-gray-600 mb-2 sm:mb-0">{filteredProducts.length} results</p>
             <div className="relative">
@@ -232,6 +299,9 @@ const ProductsPage: React.FC<ProductsPageProps> = ({ query = '', onNavigate }) =
             <div className="text-center py-12 bg-gray-50 rounded-xl">
               <h3 className="text-xl font-semibold text-gray-900 mb-2">No products found</h3>
               <p className="text-gray-600">Try adjusting your filters or check back later.</p>
+              <div className="mt-4">
+                <button onClick={() => setFetchRetry(v => v + 1)} className="px-4 py-2 bg-amber-600 text-white rounded">Retry</button>
+              </div>
             </div>
           )}
         </div>
