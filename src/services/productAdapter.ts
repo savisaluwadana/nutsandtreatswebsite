@@ -1,5 +1,8 @@
 import { Product as SupabaseProduct } from './productService';
 import { Product as UIProduct } from '../data/products';
+import { getAllCategories, Category } from './categoryService';
+
+let _cachedCategories: Category[] | null = null;
 
 type ExtendedSupabaseProduct = Omit<SupabaseProduct, 'stock_quantity'> & {
   stock_quantity?: number;
@@ -14,14 +17,30 @@ type ExtendedSupabaseProduct = Omit<SupabaseProduct, 'stock_quantity'> & {
  */
 export const adaptProductToUIFormat = (product: SupabaseProduct): Partial<UIProduct> => {
   const p = product as ExtendedSupabaseProduct;
-  const resolvedCategory = (p as { category?: string }).category || p.category_id || 'uncategorized';
+  // Attempt to resolve numeric category_id to a human-friendly category name via cached lookup.
+  let resolvedCategory: string | number = p.category_id ?? (p as { category?: string }).category ?? 'uncategorized';
+
+  // Lazy cache for categories
+  if (p.category_id) {
+    try {
+      if (!_cachedCategories) {
+        getAllCategories().then(fetched => { _cachedCategories = fetched; }).catch(() => {});
+      } else {
+        const found = _cachedCategories.find(c => String(c.id) === String(p.category_id));
+  if (found) resolvedCategory = found.name ?? (found as unknown as { category?: string }).category ?? found.id;
+      }
+    } catch {
+      // ignore cache errors and fall back to raw value
+    }
+  }
   return {
     id: product.id,
     name: product.name,
     description: product.description || '',
     shortDescription: product.description?.substring(0, 100) || '',
     price: product.price,
-    category: String(resolvedCategory),
+  // Keep category as a friendly label (or id if lookup missing)
+  category: String(resolvedCategory),
     image: product.image_url,
     images: [product.image_url],
     isBestseller: product.is_bestseller,
@@ -52,4 +71,9 @@ export const adaptProductToUIFormat = (product: SupabaseProduct): Partial<UIProd
  */
 export const adaptProductsToUIFormat = (products: SupabaseProduct[]): Partial<UIProduct>[] => {
   return products.map(adaptProductToUIFormat);
+};
+
+// Allow other modules to prime the category cache so adaptProductToUIFormat can resolve names synchronously
+export const setCachedCategories = (cats: Category[] | null) => {
+  _cachedCategories = cats;
 };

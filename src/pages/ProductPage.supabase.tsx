@@ -56,9 +56,12 @@ const ProductPage: React.FC<ProductPageProps> = ({ productId, onNavigate }) => {
         // Fetch related products (products in same category)
   const fetchRelated = async (tryNum = 0) => {
           const allProducts = await getAllProducts();
-          const filteredProducts = allProducts.filter(
-            p => p.category === productData.category && p.id !== effectiveId
-          ).slice(0, 4);
+          // Determine resolved category for the current product (adapter produces a string label)
+          const resolved = adaptProductToUIFormat(productData).category as string;
+          const filteredProducts = allProducts.filter(p => {
+            const resolvedP = adaptProductToUIFormat(p).category as string;
+            return resolvedP === resolved && p.id !== effectiveId;
+          }).slice(0, 4);
           const adaptedRelatedProducts = adaptProductsToUIFormat(filteredProducts);
           setRelatedProducts(adaptedRelatedProducts);
           if ((adaptedRelatedProducts?.length || 0) === 0 && tryNum < 2) {
@@ -99,7 +102,11 @@ const ProductPage: React.FC<ProductPageProps> = ({ productId, onNavigate }) => {
           if (productData) {
             setProduct(adaptProductToUIFormat(productData));
             const allProducts = await getAllProducts();
-            const filteredProducts = allProducts.filter(p => p.category === productData.category && p.id !== effectiveId).slice(0,4);
+            const resolved = adaptProductToUIFormat(productData).category as string;
+            const filteredProducts = allProducts.filter(p => {
+              const resolvedP = adaptProductToUIFormat(p).category as string;
+              return resolvedP === resolved && p.id !== effectiveId;
+            }).slice(0,4);
             setRelatedProducts(adaptProductsToUIFormat(filteredProducts));
             setError(null);
           }
@@ -133,7 +140,11 @@ const ProductPage: React.FC<ProductPageProps> = ({ productId, onNavigate }) => {
           if (productData) {
             setProduct(adaptProductToUIFormat(productData));
             const allProducts = await getAllProducts();
-            const filteredProducts = allProducts.filter(p => p.category === productData.category && p.id !== effectiveId).slice(0,4);
+            const resolved = adaptProductToUIFormat(productData).category as string;
+            const filteredProducts = allProducts.filter(p => {
+              const resolvedP = adaptProductToUIFormat(p).category as string;
+              return resolvedP === resolved && p.id !== effectiveId;
+            }).slice(0,4);
             setRelatedProducts(adaptProductsToUIFormat(filteredProducts));
             setError(null);
           }
@@ -202,13 +213,16 @@ const ProductPage: React.FC<ProductPageProps> = ({ productId, onNavigate }) => {
       <div className="mb-8">
         <button 
           onClick={() => {
-            if (product.category) onNavigate('category', product.category as string);
-            else onNavigate('products');
+            if (product.category) {
+              onNavigate('category', String(product.category));
+            } else {
+              onNavigate('products');
+            }
           }}
           className="text-amber-600 hover:text-amber-700 inline-flex items-center"
         >
           <ChevronLeft className="h-4 w-4 mr-1" />
-          {product.category ? `Back to ${(product.category as string).charAt(0).toUpperCase() + (product.category as string).slice(1)}` : 'Back to Products'}
+          {product.category ? `Back to ${String(product.category).charAt(0).toUpperCase() + String(product.category).slice(1)}` : 'Back to Products'}
         </button>
       </div>
 

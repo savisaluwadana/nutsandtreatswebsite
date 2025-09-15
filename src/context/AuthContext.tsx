@@ -2,12 +2,23 @@ import React, { createContext, useState, useEffect, ReactNode } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 
+type SignUpProfile = {
+  full_name?: string;
+  phone?: string;
+  shipping?: {
+    line1?: string;
+    city?: string;
+    state?: string;
+    country?: string;
+  };
+};
+
 type AuthContextType = {
   session: Session | null;
   user: User | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<unknown>;
-  signUp: (email: string, password: string) => Promise<unknown>;
+  signUp: (email: string, password: string, profile?: SignUpProfile) => Promise<unknown>;
   signOut: () => Promise<void>;
   isAdmin: boolean;
   userProfile: { isadmin?: boolean } | null;
@@ -160,10 +171,41 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   // Sign up with email and password
-  const signUp = async (email: string, password: string) => {
-  const { data, error } = await supabase.auth.signUp({ email, password });
-  if (error) throw error;
-  return data;
+  const signUp = async (email: string, password: string, profile?: SignUpProfile) => {
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          full_name: profile?.full_name || undefined,
+          phone: profile?.phone || undefined,
+        },
+      },
+    });
+    if (error) throw error;
+    try {
+      const userId = data.user?.id;
+      if (userId) {
+        const shippingAddress = profile?.shipping && Object.values(profile.shipping).some(v => !!v)
+          ? {
+              line1: profile.shipping.line1 || null,
+              city: profile.shipping.city || null,
+              state: profile.shipping.state || null,
+              country: profile.shipping.country || null,
+            }
+          : null;
+        const { error: upsertError } = await supabase.from('user_profiles').upsert({
+          id: userId,
+          full_name: profile?.full_name || null,
+          phone: profile?.phone || null,
+          default_shipping_address: shippingAddress,
+        }, { onConflict: 'id' });
+        if (upsertError) console.warn('Profile upsert after sign up failed', upsertError);
+      }
+    } catch (e) {
+      console.warn('Post-signup profile creation failed', e);
+    }
+    return data;
   };
 
   // Sign out

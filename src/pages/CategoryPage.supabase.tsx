@@ -1,9 +1,10 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { ChevronDown, Filter } from 'lucide-react';
-import { categories, Product } from '../data/products';
+import { Product } from '../data/products';
 import ProductCard from '../components/ProductCard';
 import { getProductsByCategory, getAllProducts } from '../services/productService';
 import { adaptProductsToUIFormat } from '../services/productAdapter';
+import { getAllCategories } from '../services/categoryService';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/useAuth';
 
@@ -29,14 +30,43 @@ const CategoryPage: React.FC<CategoryPageProps> = ({ category, onNavigate }) => 
 
   const { addToHamper } = useCart();
 
-  const categoryInfo = category === 'all' ? { name: 'All Products' } : categories.find(cat => cat.id === category);
+  const [categoryInfo, setCategoryInfo] = useState<{ name?: string } | null>(category === 'all' ? { name: 'All Products' } : null);
+
+  // Try to resolve category name if `category` is numeric id
+  useEffect(() => {
+    if (category === 'all') {
+      setCategoryInfo({ name: 'All Products' });
+      return;
+    }
+
+    const tryResolve = async () => {
+      // if looks numeric, try to find category by id
+      const asNum = Number(category);
+      if (!Number.isNaN(asNum) && String(asNum) === String(category)) {
+        try {
+          const cats = await getAllCategories();
+          const found = cats.find(c => String(c.id) === String(category));
+          if (found) {
+            setCategoryInfo({ name: found.name });
+            return;
+          }
+        } catch {
+          // ignore
+        }
+      }
+      // fallback: use the raw category string as a label
+      setCategoryInfo({ name: category });
+    };
+
+    tryResolve();
+  }, [category]);
 
   // Fetch products from Supabase
   useEffect(() => {
     const fetchProducts = async () => {
       try {
         setLoading(true);
-        const products = category === 'all' ? await getAllProducts() : await getProductsByCategory(category);
+  const products = category === 'all' ? await getAllProducts() : await getProductsByCategory(category);
         const adaptedProducts = adaptProductsToUIFormat(products);
         setCategoryProducts(adaptedProducts);
       } catch (err) {

@@ -19,6 +19,11 @@ const AccountPage: React.FC<AccountPageProps> = ({ onNavigate }) => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
+  // Extended signup fields (shipping address)
+  const [address, setAddress] = useState('');
+  const [city, setCity] = useState('');
+  const [stateRegion, setStateRegion] = useState('');
+  const [country, setCountry] = useState('');
   const [savingProfile, setSavingProfile] = useState(false);
   const [profileSavedAt, setProfileSavedAt] = useState<number | null>(null);
 
@@ -58,11 +63,26 @@ const AccountPage: React.FC<AccountPageProps> = ({ onNavigate }) => {
 
     try {
       if (isRegister) {
-        await signUp(email, password);
+        await signUp(email, password, {
+          full_name: fullName || undefined,
+            phone: phone || undefined,
+            shipping: {
+              line1: address || undefined,
+              city: city || undefined,
+              state: stateRegion || undefined,
+              country: country || undefined,
+            },
+        });
         alert('Check your email for confirmation if required.');
         // Clear form and switch to sign-in mode after successful signup
         setEmail('');
         setPassword('');
+        setFullName('');
+        setPhone('');
+        setAddress('');
+        setCity('');
+        setStateRegion('');
+        setCountry('');
         setIsRegister(false);
       } else {
         await signIn(email, password);
@@ -263,6 +283,37 @@ const AccountPage: React.FC<AccountPageProps> = ({ onNavigate }) => {
                     />
                   </div>
                 </div>
+
+                {isRegister && (
+                  <div className="space-y-4 border-t pt-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+                      <input value={fullName} onChange={e => setFullName(e.target.value)} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+                      <input value={phone} onChange={e => setPhone(e.target.value)} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Address Line</label>
+                      <input value={address} onChange={e => setAddress(e.target.value)} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500" />
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">City</label>
+                        <input value={city} onChange={e => setCity(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">State/Region</label>
+                        <input value={stateRegion} onChange={e => setStateRegion(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500" />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Country</label>
+                      <input value={country} onChange={e => setCountry(e.target.value)} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500" />
+                    </div>
+                  </div>
+                )}
 
                 <button
                   type="submit"

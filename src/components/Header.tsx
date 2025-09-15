@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Search, Heart, ShoppingCart, Menu, X, User, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../context/useAuth';
 import { useCart } from '../context/CartContext';
 import { useLikedProducts } from '../context/LikedProductsContext';
-import { categories } from '../data/products';
+import { getAllCategories, Category } from '../services/categoryService';
+// ...existing code...
 
 interface HeaderProps {
   onNavigate: (page: string, category?: string, productId?: number, query?: string) => void;
@@ -16,6 +17,23 @@ const Header: React.FC<HeaderProps> = ({ onNavigate }) => {
   const { getTotalItems } = useCart();
   const { user, isAdmin } = useAuth();
   const { likedProducts } = useLikedProducts();
+  const [categoriesLocal, setCategoriesLocal] = useState<Category[]>([]);
+
+  const loadCategories = async () => {
+    try {
+      const all = await getAllCategories();
+      setCategoriesLocal(all || []);
+    } catch (err) {
+      console.error('Failed to load categories for header', err);
+    }
+  };
+
+  useEffect(() => {
+    loadCategories();
+    const handler = () => loadCategories();
+    window.addEventListener('app:categories:update', handler);
+    return () => window.removeEventListener('app:categories:update', handler);
+  }, []);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,10 +67,10 @@ const Header: React.FC<HeaderProps> = ({ onNavigate }) => {
                 <div className="absolute top-full left-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 py-4">
                   <div className="px-4 py-2">
                     <h3 className="font-semibold text-gray-900 mb-2">Categories</h3>
-                    {categories.map(category => (
+                    {categoriesLocal.map(category => (
                       <button
-                        key={category.id}
-                        onClick={() => onNavigate('category', category.id)}
+                        key={String(category.id)}
+                        onClick={() => onNavigate('category', String(category.id))}
                         className="block w-full text-left px-2 py-2 text-gray-600 hover:text-amber-600 hover:bg-amber-50 rounded"
                       >
                         {category.name}
@@ -197,11 +215,11 @@ const Header: React.FC<HeaderProps> = ({ onNavigate }) => {
                 </button>
                 {isShopDropdownOpen && (
                   <div className="ml-4 mt-2 space-y-2">
-                    {categories.map(category => (
+                    {categoriesLocal.map(category => (
                       <button
-                        key={category.id}
+                        key={String(category.id)}
                         onClick={() => {
-                          onNavigate('category', category.id);
+                          onNavigate('category', String(category.id));
                           setIsMenuOpen(false);
                         }}
                         className="block text-gray-600 hover:text-amber-600 py-1"

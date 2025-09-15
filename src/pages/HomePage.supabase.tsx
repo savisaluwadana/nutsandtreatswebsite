@@ -5,6 +5,7 @@ import ProductShowcase from '../components/ProductShowcase';
 import TrustSection from '../components/TrustSection';
 import TestimonialSection from '../components/TestimonialSection';
 import { getBestsellerProducts, getNewProducts, Product } from '../services/productService';
+import { adaptProductToUIFormat } from '../services/productAdapter';
 import { useAuth } from '../context/useAuth';
 
 interface HomePageProps {
@@ -102,7 +103,7 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
       name: product.name,
       price: product.price,
       image: product.image_url,
-      category: product.category,
+      category: adaptProductToUIFormat(product).category,
       isBestseller: product.is_bestseller,
       isNew: product.is_new
     }));
