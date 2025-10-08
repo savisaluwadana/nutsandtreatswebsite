@@ -27,10 +27,10 @@ export interface Product {
 }
 
 export const categories = [
-  { id: 'nuts', name: 'Nuts', image: 'https://images.pexels.com/photos/1295572/pexels-photo-1295572.jpeg' },
-  { id: 'dried-fruits', name: 'Dried Fruits', image: 'https://images.pexels.com/photos/1132047/pexels-photo-1132047.jpeg' },
-  { id: 'seeds', name: 'Seeds', image: 'https://images.pexels.com/photos/1446318/pexels-photo-1446318.jpeg' },
-  { id: 'mixed', name: 'Mixed & Assortments', image: 'https://images.pexels.com/photos/1327374/pexels-photo-1327374.jpeg' }
+  { id: 'nuts', name: 'Nuts', image: '/images/products/nuts/cashew-nuts.jpg' },
+  { id: 'dried-fruits', name: 'Dried Fruits', image: '/images/products/dried-fruits/dried-apricots.jpg' },
+  { id: 'seeds', name: 'Seeds', image: '/images/products/seeds/pumpkin-seeds.jpg' },
+  { id: 'mixed', name: 'Mixed & Assortments', image: '/images/products/mixed/trail-mix.jpg' }
 ];
 
 // Products data is now fetched from Supabase database
@@ -43,11 +43,11 @@ export const products: Product[] = [
     category: 'nuts',
     price: 2850,
     originalPrice: 3200,
-    image: 'https://images.pexels.com/photos/1295572/pexels-photo-1295572.jpeg',
+    image: '/images/products/nuts/cashew-nuts.jpg',
     images: [
-      'https://images.pexels.com/photos/1295572/pexels-photo-1295572.jpeg',
-      'https://images.pexels.com/photos/1295641/pexels-photo-1295641.jpeg',
-      'https://images.pexels.com/photos/1391528/pexels-photo-1391528.jpeg'
+      '/images/products/nuts/cashew-nuts-1.jpg',
+      '/images/products/nuts/cashew-nuts-2.jpg',
+      '/images/products/nuts/cashew-nuts-3.jpg'
     ],
     description: 'Premium quality cashew nuts, carefully selected and vacuum-packed for maximum freshness.',
     shortDescription: 'Premium quality cashews',
@@ -90,10 +90,10 @@ export const products: Product[] = [
     name: 'Medjool Dates',
     category: 'dried-fruits',
     price: 1890,
-    image: 'https://images.pexels.com/photos/1132047/pexels-photo-1132047.jpeg',
+    image: '/images/products/dried-fruits/medjool-dates.jpg',
     images: [
-      'https://images.pexels.com/photos/1132047/pexels-photo-1132047.jpeg',
-      'https://images.pexels.com/photos/1132094/pexels-photo-1132094.jpeg'
+      '/images/products/dried-fruits/medjool-dates-1.jpg',
+      '/images/products/dried-fruits/medjool-dates-2.jpg'
     ],
     description: 'Premium Medjool dates, known as the "king of dates" for their large size and rich flavor.',
     shortDescription: 'Premium Medjool dates',
@@ -135,10 +135,10 @@ export const products: Product[] = [
     name: 'Roasted Almonds',
     category: 'nuts',
     price: 2340,
-    image: 'https://images.pexels.com/photos/1446318/pexels-photo-1446318.jpeg',
+    image: '/images/products/nuts/roasted-almonds.jpg',
     images: [
-      'https://images.pexels.com/photos/1446318/pexels-photo-1446318.jpeg',
-      'https://images.pexels.com/photos/1446327/pexels-photo-1446327.jpeg'
+      '/images/products/nuts/roasted-almonds-1.jpg',
+      '/images/products/nuts/roasted-almonds-2.jpg'
     ],
     description: 'Perfectly roasted almonds with a delicious crunch and rich flavor.',
     shortDescription: 'Perfectly roasted almonds',
@@ -181,10 +181,10 @@ export const products: Product[] = [
     name: 'Pumpkin Seeds',
     category: 'seeds',
     price: 1680,
-    image: 'https://images.pexels.com/photos/1340116/pexels-photo-1340116.jpeg',
+    image: '/images/products/seeds/pumpkin-seeds.jpg',
     images: [
-      'https://images.pexels.com/photos/1340116/pexels-photo-1340116.jpeg',
-      'https://images.pexels.com/photos/1340117/pexels-photo-1340117.jpeg'
+      '/images/products/seeds/pumpkin-seeds-1.jpg',
+      '/images/products/seeds/pumpkin-seeds-2.jpg'
     ],
     description: 'Nutritious pumpkin seeds, lightly roasted to perfection.',
     shortDescription: 'Nutritious roasted pumpkin seeds',
@@ -225,10 +225,10 @@ export const products: Product[] = [
     name: 'Organic Turmeric Powder',
     category: 'mixed',
     price: 890,
-    image: 'https://images.pexels.com/photos/1024240/pexels-photo-1024240.jpeg',
+    image: '/images/products/mixed/organic-turmeric.jpg',
     images: [
-      'https://images.pexels.com/photos/1024240/pexels-photo-1024240.jpeg',
-      'https://images.pexels.com/photos/1024264/pexels-photo-1024264.jpeg'
+      '/images/products/mixed/organic-turmeric-1.jpg',
+      '/images/products/mixed/organic-turmeric-2.jpg'
     ],
     description: 'Premium organic turmeric powder, ground fresh for maximum potency.',
     shortDescription: 'Premium organic turmeric powder',
@@ -269,10 +269,10 @@ export const products: Product[] = [
     name: 'Mixed Berry Trail Mix',
     category: 'mixed',
     price: 1980,
-    image: 'https://images.pexels.com/photos/1327374/pexels-photo-1327374.jpeg',
+    image: '/images/products/mixed/mixed-berry-trail-mix.jpg',
     images: [
-      'https://images.pexels.com/photos/1327374/pexels-photo-1327374.jpeg',
-      'https://images.pexels.com/photos/1327394/pexels-photo-1327394.jpeg'
+      '/images/products/mixed/mixed-berry-trail-mix-1.jpg',
+      '/images/products/mixed/mixed-berry-trail-mix-2.jpg'
     ],
     description: 'A delicious mix of nuts, dried fruits, and berries for the perfect healthy snack.',
     shortDescription: 'Delicious mixed berry trail mix',

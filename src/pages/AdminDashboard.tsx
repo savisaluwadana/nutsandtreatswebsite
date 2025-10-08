@@ -56,6 +56,11 @@ const AdminDashboard: React.FC = () => {
   const [stockHistory, setStockHistory] = useState<StockMovement[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
 
+  // Image upload state
+  const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
+
   const openStockHistory = async (productId: number) => {
     setStockHistoryFor(productId);
     setLoadingHistory(true);
@@ -67,6 +72,55 @@ const AdminDashboard: React.FC = () => {
       alert('Failed to load stock history');
     } finally {
       setLoadingHistory(false);
+    }
+  };
+
+  // Image upload handlers
+  const handleImageSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setSelectedImageFile(file);
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setImagePreview(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const uploadImage = async (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        // In a real application, you would upload to a cloud storage service
+        // For now, we'll simulate by creating a local path
+        const fileName = `${Date.now()}-${file.name}`;
+        const localPath = `/images/products/${fileName}`;
+
+        // Simulate upload delay
+        setTimeout(() => {
+          resolve(localPath);
+        }, 1000);
+      };
+      reader.onerror = () => reject(new Error('Failed to read file'));
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleImageUpload = async () => {
+    if (!selectedImageFile) return;
+
+    setUploadingImage(true);
+    try {
+      const imageUrl = await uploadImage(selectedImageFile);
+      setEditingProduct(prev => ({ ...prev, image_url: imageUrl }));
+      setSelectedImageFile(null);
+      setImagePreview(null);
+    } catch (error) {
+      console.error('Failed to upload image:', error);
+      alert('Failed to upload image. Please try again.');
+    } finally {
+      setUploadingImage(false);
     }
   };
   const [orderSearch, setOrderSearch] = useState<string>('');
@@ -313,188 +367,281 @@ const AdminDashboard: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="container mx-auto px-4 py-10">
-        <div className="flex items-center justify-between mb-8">
+    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-white to-orange-50">
+      <div className="max-w-7xl mx-auto px-4 py-10">
+        <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-10">
           <div>
-            <h1 className="text-2xl font-semibold text-gray-900">Admin Dashboard</h1>
-            <p className="text-sm text-gray-600">Welcome, {user?.email}</p>
+            <h1 className="text-3xl font-bold tracking-tight text-gray-900 flex items-center gap-3">
+              <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-amber-600 text-white shadow">AD</span>
+              <span>Admin Dashboard</span>
+            </h1>
+            <p className="text-sm text-gray-500 mt-1">Signed in as <span className="font-medium text-gray-700">{user?.email}</span></p>
           </div>
-        </div>
+          {activeSection === 'products' && (
+            <button
+              onClick={async () => { if (categoriesList.length === 0) await loadCategories(); openEdit(); }}
+              className="inline-flex items-center justify-center gap-2 rounded-lg bg-amber-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 transition"
+            >
+              <span className="text-lg leading-none">＋</span> New Product
+            </button>
+          )}
+        </header>
 
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-6">
-          <div className="lg:col-span-3 space-y-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              <div className="bg-white p-4 rounded-lg shadow">
-                <div className="text-sm text-gray-500">Products</div>
-                <div className="text-2xl font-bold text-gray-900">{products.length}</div>
-              </div>
-              <div className="bg-white p-4 rounded-lg shadow">
-                <div className="text-sm text-gray-500">Orders</div>
-                <div className="text-2xl font-bold text-gray-900">{orders.length}</div>
-              </div>
-              <div className="bg-white p-4 rounded-lg shadow">
-                <div className="text-sm text-gray-500">Customers</div>
-                <div className="text-2xl font-bold text-gray-900">{customers.length}</div>
-              </div>
+        <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-10">
+          <div className="relative overflow-hidden rounded-xl bg-white/70 backdrop-blur border border-amber-100 p-5 shadow-sm hover:shadow group transition">
+            <div className="absolute -right-6 -top-6 h-16 w-16 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 opacity-10 group-hover:opacity-20 transition" />
+            <div className="text-xs uppercase tracking-wide text-amber-600 font-semibold mb-1">Products</div>
+            <div className="text-3xl font-bold text-gray-900">{products.length}</div>
+            <div className="mt-1 text-[11px] text-gray-500">Total products</div>
+          </div>
+          <div className="relative overflow-hidden rounded-xl bg-white/70 backdrop-blur border border-blue-100 p-5 shadow-sm hover:shadow group transition">
+            <div className="absolute -right-6 -top-6 h-16 w-16 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 opacity-10 group-hover:opacity-20 transition" />
+            <div className="text-xs uppercase tracking-wide text-blue-600 font-semibold mb-1">Orders</div>
+            <div className="text-3xl font-bold text-gray-900">{orders.length}</div>
+            <div className="mt-1 text-[11px] text-gray-500">Total orders</div>
+          </div>
+            <div className="relative overflow-hidden rounded-xl bg-white/70 backdrop-blur border border-green-100 p-5 shadow-sm hover:shadow group transition">
+              <div className="absolute -right-6 -top-6 h-16 w-16 rounded-full bg-gradient-to-br from-green-400 to-green-600 opacity-10 group-hover:opacity-20 transition" />
+              <div className="text-xs uppercase tracking-wide text-green-600 font-semibold mb-1">Customers</div>
+              <div className="text-3xl font-bold text-gray-900">{customers.length}</div>
+              <div className="mt-1 text-[11px] text-gray-500">Registered users</div>
             </div>
+          <div className="relative overflow-hidden rounded-xl bg-white/70 backdrop-blur border border-purple-100 p-5 shadow-sm hover:shadow group transition">
+            <div className="absolute -right-6 -top-6 h-16 w-16 rounded-full bg-gradient-to-br from-purple-400 to-purple-600 opacity-10 group-hover:opacity-20 transition" />
+            <div className="text-xs uppercase tracking-wide text-purple-600 font-semibold mb-1">Categories</div>
+            <div className="text-3xl font-bold text-gray-900">{categoriesList.length}</div>
+            <div className="mt-1 text-[11px] text-gray-500">Available categories</div>
+          </div>
+        </section>
 
-            <div className="bg-white rounded-lg shadow p-6">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex gap-2">
-                  <button onClick={() => { setActiveSection('products'); loadProducts(); }} className={`px-3 py-1 rounded ${activeSection === 'products' ? 'bg-amber-600 text-white' : 'bg-gray-100'}`}>Products</button>
-                  <button onClick={() => { setActiveSection('orders'); loadOrders(); }} className={`px-3 py-1 rounded ${activeSection === 'orders' ? 'bg-amber-600 text-white' : 'bg-gray-100'}`}>Orders</button>
-                  <button onClick={() => { setActiveSection('suppliers'); loadSuppliers(); }} className={`px-3 py-1 rounded ${activeSection === 'suppliers' ? 'bg-amber-600 text-white' : 'bg-gray-100'}`}>Suppliers</button>
-                  <button onClick={() => { setActiveSection('customers'); loadCustomers(); }} className={`px-3 py-1 rounded ${activeSection === 'customers' ? 'bg-amber-600 text-white' : 'bg-gray-100'}`}>Customers</button>
-                  <button onClick={() => { setActiveSection('categories'); loadCategories(); }} className={`px-3 py-1 rounded ${activeSection === 'categories' ? 'bg-amber-600 text-white' : 'bg-gray-100'}`}>Categories</button>
+        <div className="flex flex-col lg:flex-row gap-8">
+          <aside className="w-full lg:w-56 shrink-0">
+            <nav className="sticky top-24 space-y-1 bg-white/80 backdrop-blur border border-gray-100 rounded-xl p-3 shadow-sm">
+              {([
+                { key: 'products', label: 'Products', action: () => loadProducts() },
+                { key: 'orders', label: 'Orders', action: () => loadOrders() },
+                { key: 'suppliers', label: 'Suppliers', action: () => loadSuppliers() },
+                { key: 'customers', label: 'Customers', action: () => loadCustomers() },
+                { key: 'categories', label: 'Categories', action: () => loadCategories() },
+              ] as Array<{ key: typeof activeSection; label: string; action: () => void }>).map(item => (
+                <button
+                  key={item.key}
+                  onClick={() => { setActiveSection(item.key); item.action(); }}
+                  className={`group w-full flex items-center justify-between rounded-lg px-3 py-2 text-sm font-medium transition border ${
+                    activeSection === item.key
+                      ? 'bg-amber-600 text-white border-amber-600 shadow'
+                      : 'bg-white/50 hover:bg-amber-50 text-gray-700 border-transparent'
+                  }`}
+                >
+                  <span>{item.label}</span>
+                  {activeSection === item.key && <span className="text-xs bg-white/20 px-2 py-0.5 rounded-full">•</span>}
+                </button>
+              ))}
+            </nav>
+          </aside>
+
+          <main className="flex-1 space-y-8">
+            <div className="bg-white/80 backdrop-blur rounded-xl border border-gray-100 shadow-sm p-6">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+                <div className="flex flex-wrap gap-2">
+                  {(['products','orders','suppliers','customers','categories'] as typeof activeSection[]).map(sec => (
+                    <button
+                      key={sec}
+                      onClick={() => { setActiveSection(sec); ({
+                        products: loadProducts,
+                        orders: loadOrders,
+                        suppliers: loadSuppliers,
+                        customers: loadCustomers,
+                        categories: loadCategories,
+                      } as Record<string, () => void>)[sec](); }}
+                      className={`px-3 py-1.5 rounded-md text-sm font-medium transition border ${
+                        activeSection === sec ? 'bg-amber-600 text-white border-amber-600 shadow' : 'bg-gray-100 hover:bg-gray-200 text-gray-700 border-transparent'
+                      }`}
+                    >
+                      {sec.charAt(0).toUpperCase() + sec.slice(1)}
+                    </button>
+                  ))}
                 </div>
-
                 {activeSection === 'products' && (
-                  <button onClick={async () => { if (categoriesList.length === 0) await loadCategories(); openEdit(); }} className="bg-amber-600 text-white px-3 py-2 rounded hover:bg-amber-700">+ New Product</button>
+                  <button onClick={async () => { if (categoriesList.length === 0) await loadCategories(); openEdit(); }} className="inline-flex items-center gap-2 rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white shadow hover:bg-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 transition">+ New Product</button>
                 )}
               </div>
-
               <div>
                 {/* PRODUCTS TABLE */}
                 {activeSection === 'products' && (
                   <div>
-                    <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center justify-between mb-6">
                       <div className="flex items-center gap-3">
-                        <input value={productSearch} onChange={e => setProductSearch(e.target.value)} placeholder="Search products..." className="px-3 py-2 border rounded-lg w-64" />
-                        <button onClick={() => { setProductSearch(''); loadProducts(); }} className="px-3 py-2 bg-gray-100 rounded">Clear</button>
+                        <div className="relative">
+                          <input
+                            value={productSearch}
+                            onChange={e => setProductSearch(e.target.value)}
+                            placeholder="Search products..."
+                            className="w-64 pl-4 pr-10 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition"
+                          />
+                          {productSearch && (
+                            <button
+                              onClick={() => { setProductSearch(''); loadProducts(); }}
+                              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                            >
+                              ✕
+                            </button>
+                          )}
+                        </div>
+                        <button
+                          onClick={() => { setProductSearch(''); loadProducts(); }}
+                          className="px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition"
+                        >
+                          Clear
+                        </button>
                       </div>
-                      <div className="text-sm text-gray-600">{products.length} products</div>
+                      <div className="text-sm text-gray-600 bg-gray-50 px-3 py-1 rounded-full">
+                        {products.length} products
+                      </div>
                     </div>
                     {/* Import controls */}
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="flex items-center gap-2">
-                        <a href="/docs/product_upload_template.csv" download className="px-3 py-2 bg-amber-600 text-white rounded">Download template</a>
-                        <label className="px-3 py-2 bg-gray-100 rounded cursor-pointer">
-                          <input id="productExcel" type="file" accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel" className="hidden" onChange={async e => {
-                            const file = e.target.files?.[0];
-                            if (!file) return;
-                            try {
-                              const buf = await file.arrayBuffer();
-                              const wb = XLSX.read(buf, { type: 'array' });
-                              const first = wb.SheetNames[0];
-                              const sheet = wb.Sheets[first];
-                              const raw = XLSX.utils.sheet_to_json(sheet, { defval: '' }) as Record<string, unknown>[];
+                    <div className="flex items-center justify-between mb-6">
+                      <div className="flex items-center gap-3">
+                        <a
+                          href="/docs/product_upload_template.csv"
+                          download
+                          className="inline-flex items-center gap-2 px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg transition shadow-sm"
+                        >
+                          <span>⬇</span> Download template
+                        </a>
+                        <label className="inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg cursor-pointer transition shadow-sm">
+                          <input
+                            id="productExcel"
+                            type="file"
+                            accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel"
+                            className="hidden"
+                            onChange={async e => {
+                              const file = e.target.files?.[0];
+                              if (!file) return;
+                              try {
+                                const buf = await file.arrayBuffer();
+                                const wb = XLSX.read(buf, { type: 'array' });
+                                const first = wb.SheetNames[0];
+                                const sheet = wb.Sheets[first];
+                                const raw = XLSX.utils.sheet_to_json(sheet, { defval: '' }) as Record<string, unknown>[];
 
-                              // map keys to expected fields
-                              const rows = raw.map(r => ({
-                                name: String(r['name'] ?? r['Name'] ?? r['product_name'] ?? '').trim(),
-                                description: String(r['description'] ?? r['Description'] ?? '').trim(),
-                                price: Number(r['price'] ?? r['Price'] ?? 0),
-                                category: String(r['category'] ?? r['Category'] ?? '').trim(),
-                                image_url: String(r['image_url'] ?? r['imageUrl'] ?? r['Image URL'] ?? '').trim(),
-                                stock_quantity: Number(r['stock_quantity'] ?? r['stock'] ?? r['Stock'] ?? 0),
-                                is_bestseller: (String(r['is_bestseller'] ?? r['bestseller'] ?? '').toLowerCase() === 'true') || (Number(r['is_bestseller'] ?? r['bestseller'] ?? 0) === 1),
-                                is_new: (String(r['is_new'] ?? r['new'] ?? '').toLowerCase() === 'true') || (Number(r['is_new'] ?? r['new'] ?? 0) === 1),
-                              }));
+                                // map keys to expected fields
+                                const rows = raw.map(r => ({
+                                  name: String(r['name'] ?? r['Name'] ?? r['product_name'] ?? '').trim(),
+                                  description: String(r['description'] ?? r['Description'] ?? '').trim(),
+                                  price: Number(r['price'] ?? r['Price'] ?? 0),
+                                  category: String(r['category'] ?? r['Category'] ?? '').trim(),
+                                  image_url: String(r['image_url'] ?? r['imageUrl'] ?? r['Image URL'] ?? '').trim(),
+                                  stock_quantity: Number(r['stock_quantity'] ?? r['stock'] ?? r['Stock'] ?? 0),
+                                  is_bestseller: (String(r['is_bestseller'] ?? r['bestseller'] ?? '').toLowerCase() === 'true') || (Number(r['is_bestseller'] ?? r['bestseller'] ?? 0) === 1),
+                                  is_new: (String(r['is_new'] ?? r['new'] ?? '').toLowerCase() === 'true') || (Number(r['is_new'] ?? r['new'] ?? 0) === 1),
+                                }));
 
-                              // basic inline validation
-                              const invalid = rows.map((row, idx) => ({ row, idx })).filter(x => !x.row.name || x.row.price == null || x.row.category === '');
-                              if (invalid.length) {
-                                alert(`Found ${invalid.length} invalid rows. Ensure 'name', 'price' and 'category' are present.`);
-                                return;
-                              }
-
-                              // Ensure we have categories loaded to map text/slugs to numeric ids
-                              if (categoriesList.length === 0) await loadCategories();
-
-                              // Map CSV category values to category_id where possible.
-                              type CSVRow = { [k: string]: unknown; category?: string };
-                              const mappedRows: Array<Record<string, unknown>> = (rows as CSVRow[]).map(r => {
-                                const out: Record<string, unknown> = { ...r };
-                                const catVal = String(r.category || '').trim();
-                                if (catVal) {
-                                  // Try find by id, name, or slug
-                                  const found = categoriesList.find(c => String(c.id) === catVal || String(c.name).toLowerCase() === catVal.toLowerCase() || String((c.slug ?? '')).toLowerCase() === catVal.toLowerCase());
-                                  if (found) out['category_id'] = Number(found.id);
-                                  else out['category_id'] = catVal; // keep original if not matched (bulkCreate will try alternate mapping)
+                                // basic inline validation
+                                const invalid = rows.map((row, idx) => ({ row, idx })).filter(x => !x.row.name || x.row.price == null || x.row.category === '');
+                                if (invalid.length) {
+                                  alert(`Found ${invalid.length} invalid rows. Ensure 'name', 'price' and 'category' are present.`);
+                                  return;
                                 }
-                                delete out['category'];
-                                return out;
-                              });
 
-                              // call bulk create
-                              const res = await bulkCreateProducts(mappedRows as unknown as Array<Record<string, unknown>>);
-                              await loadProducts();
-                              const msgParts = [`Inserted ${res.inserted} rows.`];
-                              if (res.errors.length) msgParts.push(`Errors: ${res.errors.map(e => `row ${e.index + 1}: ${e.message}`).join('; ')}`);
-                              alert(msgParts.join(' '));
-                            } catch (err) {
-                              console.error('Import failed', err);
-                              alert('Failed to import file. See console for details.');
-                            } finally {
-                              // reset file input
-                              const input = document.getElementById('productExcel') as HTMLInputElement | null;
-                              if (input) input.value = '';
-                            }
-                          }} />
-                          <span>Upload Excel/CSV</span>
+                                // Ensure we have categories loaded to map text/slugs to numeric ids
+                                if (categoriesList.length === 0) await loadCategories();
+
+                                // Map CSV category values to category_id where possible.
+                                type CSVRow = { [k: string]: unknown; category?: string };
+                                const mappedRows: Array<Record<string, unknown>> = (rows as CSVRow[]).map(r => {
+                                  const out: Record<string, unknown> = { ...r };
+                                  const catVal = String(r.category || '').trim();
+                                  if (catVal) {
+                                    // Try find by id, name, or slug
+                                    const found = categoriesList.find(c => String(c.id) === catVal || String(c.name).toLowerCase() === catVal.toLowerCase() || String((c.slug ?? '')).toLowerCase() === catVal.toLowerCase());
+                                    if (found) out['category_id'] = Number(found.id);
+                                    else out['category_id'] = catVal; // keep original if not matched (bulkCreate will try alternate mapping)
+                                  }
+                                  delete out['category'];
+                                  return out;
+                                });
+
+                                // call bulk create
+                                const res = await bulkCreateProducts(mappedRows as unknown as Array<Record<string, unknown>>);
+                                await loadProducts();
+                                const msgParts = [`Inserted ${res.inserted} rows.`];
+                                if (res.errors.length) msgParts.push(`Errors: ${res.errors.map(e => `row ${e.index + 1}: ${e.message}`).join('; ')}`);
+                                alert(msgParts.join(' '));
+                              } catch (err) {
+                                console.error('Import failed', err);
+                                alert('Failed to import file. See console for details.');
+                              } finally {
+                                // reset file input
+                                const input = document.getElementById('productExcel') as HTMLInputElement | null;
+                                if (input) input.value = '';
+                              }
+                            }}
+                          />
+                          <span>⬆ Upload Excel/CSV</span>
                         </label>
                       </div>
                       <div />
                     </div>
 
-                    <div className="overflow-x-auto bg-white rounded-lg shadow">
-                      <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-50">
-                          <tr>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Category</th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Price</th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Stock</th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tags</th>
-                            <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
+                    <div className="overflow-auto rounded-xl ring-1 ring-gray-200 shadow-sm bg-white">
+                      <table className="min-w-full text-sm align-middle">
+                        <thead className="bg-gradient-to-b from-gray-50 to-gray-100 text-xs uppercase tracking-wide text-gray-600 sticky top-0 z-10">
+                          <tr className="divide-x divide-gray-200/70">
+                            <th className="px-4 py-3 text-left font-semibold">Name</th>
+                            <th className="px-4 py-3 text-left font-semibold">Category</th>
+                            <th className="px-4 py-3 text-left font-semibold">Price</th>
+                            <th className="px-4 py-3 text-left font-semibold">Stock</th>
+                            <th className="px-4 py-3 text-left font-semibold">Tags</th>
+                            <th className="px-4 py-3 text-right font-semibold">Actions</th>
                           </tr>
                         </thead>
-                        <tbody className="bg-white divide-y divide-gray-100">
-                          {products.filter(p => !productSearch || String(p.name).toLowerCase().includes(productSearch.toLowerCase())).map(p => (
-                            <tr key={p.id}>
-                              <td className="px-4 py-3 whitespace-nowrap">
-                                <div className="font-medium text-gray-900">{p.name}</div>
-                                <div className="text-sm text-gray-500">{p.description?.slice?.(0, 80)}</div>
-                              </td>
-                              <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">{resolveCategoryDisplay(p) || '—'}</td>
-                              <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">₦{p.price}</td>
-                              <td className={`px-4 py-3 whitespace-nowrap text-sm text-gray-700 ${ (p.stock_quantity ?? 0) <= LOW_STOCK_THRESHOLD ? 'bg-red-50 text-red-700 font-medium' : '' }`}>
-                                <div className="flex items-center gap-2">
-                                  <button type="button" onClick={async () => {
-                                    try { const updated = await adjustProductStock(p.id, -1); setProducts(prev => prev.map(x => x.id === p.id ? updated : x)); } catch (e) { console.error(e); alert('Stock update failed'); }
-                                  }} className="px-2 py-0.5 rounded border text-xs hover:bg-gray-100">-</button>
-                                  <span>{p.stock_quantity ?? 0}</span>
-                                  <button type="button" onClick={async () => {
-                                    try { const updated = await adjustProductStock(p.id, 1); setProducts(prev => prev.map(x => x.id === p.id ? updated : x)); } catch (e) { console.error(e); alert('Stock update failed'); }
-                                  }} className="px-2 py-0.5 rounded border text-xs hover:bg-gray-100">+</button>
-                                </div>
-                                <div className="mt-1 flex items-center gap-1">
-                                  <input
-                                    type="number"
-                                    className="w-16 border rounded px-1 py-0.5 text-xs"
-                                    value={stockEdit[p.id] ?? ''}
-                                    placeholder="set"
-                                    onChange={e => setStockEdit(prev => ({ ...prev, [p.id]: e.target.value }))}
-                                  />
-                                  <button type="button" className="text-xs px-2 py-0.5 bg-amber-600 text-white rounded"
-                                    onClick={async () => {
-                                      const raw = stockEdit[p.id];
-                                      if (raw == null || raw === '') return;
-                                      const val = Number(raw);
-                                      if (Number.isNaN(val) || val < 0) { alert('Enter a non-negative number'); return; }
-                                      try { const updated = await setProductStock(p.id, val); setProducts(prev => prev.map(x => x.id === p.id ? updated : x)); setStockEdit(prev => { const c = { ...prev }; delete c[p.id]; return c; }); } catch (e) { console.error(e); alert('Set stock failed'); }
-                                    }}>OK</button>
-                                </div>
-                              </td>
-                              <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">{((((p as unknown as Record<string, unknown>).tags) as unknown as string[]) || []).slice(0,3).join(', ')}</td>
-                              <td className="px-4 py-3 whitespace-nowrap text-right text-sm font-medium space-x-2">
-                                <button onClick={() => openEdit(p)} className="text-amber-600 hover:text-amber-700">Edit</button>
-                                <button onClick={() => openStockHistory(p.id)} className="text-blue-600 hover:text-blue-700">History</button>
-                                <button onClick={() => handleDelete(p.id)} className="text-red-600 hover:text-red-700">Delete</button>
-                              </td>
-                            </tr>
-                          ))}
+                        <tbody className="divide-y divide-gray-100">
+                          {products.filter(p => !productSearch || String(p.name).toLowerCase().includes(productSearch.toLowerCase())).map(p => {
+                            const low = (p.stock_quantity ?? 0) <= LOW_STOCK_THRESHOLD;
+                            return (
+                              <tr key={p.id} className="hover:bg-amber-50/40 transition-colors">
+                                <td className="px-4 py-3 whitespace-nowrap max-w-xs">
+                                  <div className="font-medium text-gray-900 truncate">{p.name}</div>
+                                  {p.description && <div className="text-[11px] text-gray-500 line-clamp-2">{p.description}</div>}
+                                </td>
+                                <td className="px-4 py-3 whitespace-nowrap text-gray-700">{resolveCategoryDisplay(p) || '—'}</td>
+                                <td className="px-4 py-3 whitespace-nowrap text-gray-700">₦{p.price}</td>
+                                <td className="px-4 py-3 whitespace-nowrap text-gray-700">
+                                  <div className={`inline-flex items-center gap-2 rounded-full border px-2 py-1 text-xs ${low ? 'border-red-300 bg-red-50 text-red-700' : 'border-gray-200 bg-gray-50'}`}> 
+                                    <button type="button" onClick={async () => { try { const updated = await adjustProductStock(p.id, -1); setProducts(prev => prev.map(x => x.id === p.id ? updated : x)); } catch { alert('Stock update failed'); } }} className="h-5 w-5 flex items-center justify-center rounded bg-white border hover:bg-gray-100">-</button>
+                                    <span className="min-w-[1.5rem] text-center font-medium">{p.stock_quantity ?? 0}</span>
+                                    <button type="button" onClick={async () => { try { const updated = await adjustProductStock(p.id, 1); setProducts(prev => prev.map(x => x.id === p.id ? updated : x)); } catch { alert('Stock update failed'); } }} className="h-5 w-5 flex items-center justify-center rounded bg-white border hover:bg-gray-100">+</button>
+                                  </div>
+                                  <div className="mt-1 flex items-center gap-1">
+                                    <input
+                                      type="number"
+                                      className="w-16 border rounded px-1 py-0.5 text-xs focus:ring-amber-500 focus:border-amber-500"
+                                      value={stockEdit[p.id] ?? ''}
+                                      placeholder="set"
+                                      onChange={e => setStockEdit(prev => ({ ...prev, [p.id]: e.target.value }))}
+                                    />
+                                    <button type="button" className="text-xs px-2 py-0.5 bg-amber-600 text-white rounded hover:bg-amber-700"
+                                      onClick={async () => {
+                                        const raw = stockEdit[p.id];
+                                        if (raw == null || raw === '') return;
+                                        const val = Number(raw);
+                                        if (Number.isNaN(val) || val < 0) { alert('Enter a non-negative number'); return; }
+                                        try { const updated = await setProductStock(p.id, val); setProducts(prev => prev.map(x => x.id === p.id ? updated : x)); setStockEdit(prev => { const c = { ...prev }; delete c[p.id]; return c; }); } catch { alert('Set stock failed'); }
+                                      }}>OK</button>
+                                  </div>
+                                </td>
+                                <td className="px-4 py-3 whitespace-nowrap text-gray-700">{((((p as unknown as Record<string, unknown>).tags) as unknown as string[]) || []).slice(0,3).join(', ')}</td>
+                                <td className="px-4 py-3 whitespace-nowrap text-right text-gray-700 text-xs">
+                                  <div className="inline-flex gap-2">
+                                    <button onClick={() => openEdit(p)} className="px-2 py-1 rounded bg-amber-100 text-amber-800 hover:bg-amber-200">Edit</button>
+                                    <button onClick={() => openStockHistory(p.id)} className="px-2 py-1 rounded bg-blue-100 text-blue-700 hover:bg-blue-200">History</button>
+                                    <button onClick={() => handleDelete(p.id)} className="px-2 py-1 rounded bg-red-100 text-red-700 hover:bg-red-200">Del</button>
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })}
                         </tbody>
                       </table>
                     </div>
@@ -504,45 +651,80 @@ const AdminDashboard: React.FC = () => {
                 {/* ORDERS TABLE */}
                 {activeSection === 'orders' && (
                   <div>
-                    <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center justify-between mb-6">
                       <div className="flex items-center gap-3">
-                        <input value={orderSearch} onChange={e => setOrderSearch(e.target.value)} placeholder="Search orders..." className="px-3 py-2 border rounded-lg w-64" />
-                        <button onClick={() => { setOrderSearch(''); loadOrders(); }} className="px-3 py-2 bg-gray-100 rounded">Clear</button>
+                        <div className="relative">
+                          <input
+                            value={orderSearch}
+                            onChange={e => setOrderSearch(e.target.value)}
+                            placeholder="Search orders..."
+                            className="w-64 pl-4 pr-10 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition"
+                          />
+                          {orderSearch && (
+                            <button
+                              onClick={() => { setOrderSearch(''); loadOrders(); }}
+                              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                            >
+                              ✕
+                            </button>
+                          )}
+                        </div>
+                        <button
+                          onClick={() => { setOrderSearch(''); loadOrders(); }}
+                          className="px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition"
+                        >
+                          Clear
+                        </button>
                       </div>
-                      <div className="text-sm text-gray-600">{orders.length} orders</div>
+                      <div className="text-sm text-gray-600 bg-gray-50 px-3 py-1 rounded-full">
+                        {orders.length} orders
+                      </div>
                     </div>
 
-                    <div className="overflow-x-auto bg-white rounded-lg shadow">
-                      <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-50">
-                          <tr>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Order #</th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Customer</th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total</th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                            <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
+                    <div className="overflow-auto rounded-xl ring-1 ring-gray-200 shadow-sm bg-white">
+                      <table className="min-w-full text-sm align-middle">
+                        <thead className="bg-gradient-to-b from-gray-50 to-gray-100 text-xs uppercase tracking-wide text-gray-600 sticky top-0 z-10">
+                          <tr className="divide-x divide-gray-200/70">
+                            <th className="px-4 py-3 text-left font-semibold">Order #</th>
+                            <th className="px-4 py-3 text-left font-semibold">Customer</th>
+                            <th className="px-4 py-3 text-left font-semibold">Total</th>
+                            <th className="px-4 py-3 text-left font-semibold">Status</th>
+                            <th className="px-4 py-3 text-right font-semibold">Actions</th>
                           </tr>
                         </thead>
-                        <tbody className="bg-white divide-y divide-gray-100">
-                          {orders.filter(o => !orderSearch || String(o.id).includes(orderSearch) || String(o.customer_name || o.customer_email || '').toLowerCase().includes(orderSearch.toLowerCase())).map(o => (
-                            <tr key={o.id}>
-                              <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">#{o.id}</td>
-                              <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">{o.customer_name || o.customer_email || 'Guest'}</td>
-                              <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">₦{String((o as unknown as Record<string, unknown>).total ?? (o as unknown as Record<string, unknown>).amount ?? '—')}</td>
-                              <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
-                                <select value={o.status || 'pending'} onChange={e => changeOrderStatusHandler(o.id, e.target.value)} className="px-2 py-1 border rounded">
-                                  <option value="pending">Pending</option>
-                                  <option value="processed">Processed</option>
-                                  <option value="completed">Completed</option>
-                                  <option value="cancelled">Cancelled</option>
-                                </select>
-                              </td>
-                              <td className="px-4 py-3 whitespace-nowrap text-right text-sm font-medium">
-                                <button onClick={() => openOrder(o)} className="text-amber-600 hover:text-amber-700 mr-3">Details</button>
-                                <button onClick={() => handleDeleteOrder(o.id)} className="text-red-600 hover:text-red-700">Delete</button>
-                              </td>
-                            </tr>
-                          ))}
+                        <tbody className="divide-y divide-gray-100">
+                          {orders.filter(o => !orderSearch || String(o.id).includes(orderSearch) || String(o.customer_name || o.customer_email || '').toLowerCase().includes(orderSearch.toLowerCase())).map(o => {
+                            const statusColor: Record<string,string> = {
+                              pending: 'bg-amber-100 text-amber-800',
+                              processed: 'bg-blue-100 text-blue-700',
+                              completed: 'bg-green-100 text-green-700',
+                              cancelled: 'bg-red-100 text-red-700'
+                            };
+                            return (
+                              <tr key={o.id} className="hover:bg-amber-50/40 transition-colors">
+                                <td className="px-4 py-3 whitespace-nowrap font-medium text-gray-800">#{o.id}</td>
+                                <td className="px-4 py-3 whitespace-nowrap text-gray-700">{o.customer_name || o.customer_email || 'Guest'}</td>
+                                <td className="px-4 py-3 whitespace-nowrap text-gray-700">₦{String((o as unknown as Record<string, unknown>).total ?? (o as unknown as Record<string, unknown>).amount ?? '—')}</td>
+                                <td className="px-4 py-3 whitespace-nowrap">
+                                  <div className="flex items-center gap-2">
+                                    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ring-1 ring-inset ring-gray-200 ${statusColor[o.status || 'pending'] || 'bg-gray-100 text-gray-700'}`}>{o.status || 'pending'}</span>
+                                    <select value={o.status || 'pending'} onChange={e => changeOrderStatusHandler(o.id, e.target.value)} className="px-2 py-1 border rounded text-xs focus:ring-amber-500 focus:border-amber-500">
+                                      <option value="pending">Pending</option>
+                                      <option value="processed">Processed</option>
+                                      <option value="completed">Completed</option>
+                                      <option value="cancelled">Cancelled</option>
+                                    </select>
+                                  </div>
+                                </td>
+                                <td className="px-4 py-3 whitespace-nowrap text-right text-xs">
+                                  <div className="inline-flex gap-2">
+                                    <button onClick={() => openOrder(o)} className="px-2 py-1 rounded bg-amber-100 text-amber-800 hover:bg-amber-200">Details</button>
+                                    <button onClick={() => handleDeleteOrder(o.id)} className="px-2 py-1 rounded bg-red-100 text-red-700 hover:bg-red-200">Del</button>
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })}
                         </tbody>
                       </table>
                     </div>
@@ -552,32 +734,54 @@ const AdminDashboard: React.FC = () => {
                 {/* SUPPLIERS TABLE */}
                 {activeSection === 'suppliers' && (
                   <div>
-                    <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center justify-between mb-6">
                       <div className="flex items-center gap-3">
-                        <input value={supplierSearch} onChange={e => setSupplierSearch(e.target.value)} placeholder="Search suppliers..." className="px-3 py-2 border rounded-lg w-64" />
-                        <button onClick={() => { setSupplierSearch(''); loadSuppliers(); }} className="px-3 py-2 bg-gray-100 rounded">Clear</button>
+                        <div className="relative">
+                          <input
+                            value={supplierSearch}
+                            onChange={e => setSupplierSearch(e.target.value)}
+                            placeholder="Search suppliers..."
+                            className="w-64 pl-4 pr-10 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition"
+                          />
+                          {supplierSearch && (
+                            <button
+                              onClick={() => { setSupplierSearch(''); loadSuppliers(); }}
+                              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                            >
+                              ✕
+                            </button>
+                          )}
+                        </div>
+                        <button
+                          onClick={() => { setSupplierSearch(''); loadSuppliers(); }}
+                          className="px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition"
+                        >
+                          Clear
+                        </button>
                       </div>
-                      <div className="text-sm text-gray-600">{suppliers.length} suppliers</div>
+                      <div className="text-sm text-gray-600 bg-gray-50 px-3 py-1 rounded-full">
+                        {suppliers.length} suppliers
+                      </div>
                     </div>
 
-                    <div className="overflow-x-auto bg-white rounded-lg shadow">
-                      <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-50">
+                    <div className="overflow-auto rounded-xl ring-1 ring-gray-200 shadow-sm bg-white">
+                      <table className="min-w-full text-sm align-middle">
+                        <thead className="bg-gradient-to-b from-gray-50 to-gray-100 text-xs uppercase tracking-wide text-gray-600 sticky top-0 z-10">
                           <tr>
                             {(suppliers[0] ? Object.keys(suppliers[0]) : ['id','name']).map(k => (
-                              <th key={k} className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{k}</th>
+                              <th key={k} className="px-4 py-3 text-left font-semibold">{k}</th>
                             ))}
-                            <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
+                            <th className="px-4 py-3 text-right font-semibold">Actions</th>
                           </tr>
                         </thead>
-                        <tbody className="bg-white divide-y divide-gray-100">
+                        <tbody className="divide-y divide-gray-100">
                           {suppliers.filter(s => !supplierSearch || String(s.name).toLowerCase().includes(supplierSearch.toLowerCase())).map(s => (
-                            <tr key={s.id}>
+                            <tr key={s.id} className="hover:bg-amber-50/40 transition-colors">
                               {(Object.keys(s) as string[]).map(key => (
-                                <td key={key} className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">{String(((s as unknown) as Record<string, unknown>)[key] ?? '')}</td>
+                                <td key={key} className="px-4 py-3 whitespace-nowrap text-gray-700">{String(((s as unknown) as Record<string, unknown>)[key] ?? '')}</td>
                               ))}
-                              <td className="px-4 py-3 whitespace-nowrap text-right text-sm font-medium">
-                                <button onClick={() => handleDeleteSupplier(s.id)} className="text-red-600 hover:text-red-700">Delete</button>
+                              <td className="px-4 py-3 whitespace-nowrap text-right text-xs">
+                                <button onClick={() => handleDeleteSupplier(s.id)} className="px-2 py-1 rounded bg-red-100 text-red-700 hover:bg-red-200">Del</button>
                               </td>
                             </tr>
                           ))}
@@ -590,34 +794,48 @@ const AdminDashboard: React.FC = () => {
                 {/* CATEGORIES TABLE */}
                 {activeSection === 'categories' && (
                   <div>
-                    <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center justify-between mb-6">
                       <div className="flex items-center gap-3">
-                        <input value={''} onChange={() => {}} placeholder="Search categories..." className="px-3 py-2 border rounded-lg w-64" />
-                        <button onClick={() => { loadCategories(); }} className="px-3 py-2 bg-gray-100 rounded">Refresh</button>
+                        <input
+                          value={''}
+                          onChange={() => {}}
+                          placeholder="Search categories..."
+                          disabled
+                          className="w-64 pl-4 pr-10 py-2.5 border border-gray-200 rounded-lg bg-gray-50 text-gray-400 cursor-not-allowed"
+                        />
+                        <button
+                          onClick={() => { loadCategories(); }}
+                          className="px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition"
+                        >
+                          Refresh
+                        </button>
                       </div>
-                      <div className="text-sm text-gray-600">{categoriesList.length} categories</div>
+                      <div className="text-sm text-gray-600 bg-gray-50 px-3 py-1 rounded-full">
+                        {categoriesList.length} categories
+                      </div>
                     </div>
 
-                    <div className="overflow-x-auto bg-white rounded-lg shadow mb-4">
-                      <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-50">
+                    <div className="overflow-auto rounded-xl ring-1 ring-gray-200 shadow-sm bg-white mb-4">
+                      <table className="min-w-full text-sm align-middle">
+                        <thead className="bg-gradient-to-b from-gray-50 to-gray-100 text-xs uppercase tracking-wide text-gray-600 sticky top-0 z-10">
                           <tr>
-                            {/* dynamically show all keys found on first category */}
                             {(categoriesList[0] ? Object.keys(categoriesList[0]) : ['id','name']).map(k => (
-                              <th key={k} className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{k}</th>
+                              <th key={k} className="px-4 py-3 text-left font-semibold">{k}</th>
                             ))}
-                            <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
+                            <th className="px-4 py-3 text-right font-semibold">Actions</th>
                           </tr>
                         </thead>
-                        <tbody className="bg-white divide-y divide-gray-100">
+                        <tbody className="divide-y divide-gray-100">
                           {categoriesList.map(c => (
-                            <tr key={String(c.id)}>
+                            <tr key={String(c.id)} className="hover:bg-amber-50/40 transition-colors">
                               {(Object.keys(c) as string[]).map(key => (
-                                <td key={key} className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">{String(((c as unknown) as Record<string, unknown>)[key] ?? '')}</td>
+                                <td key={key} className="px-4 py-3 whitespace-nowrap text-gray-700">{String(((c as unknown) as Record<string, unknown>)[key] ?? '')}</td>
                               ))}
-                              <td className="px-4 py-3 whitespace-nowrap text-right text-sm font-medium">
-                                <button onClick={() => setEditingCategory({ ...c })} className="text-amber-600 hover:text-amber-700 mr-3">Edit</button>
-                                <button onClick={() => handleDeleteCategory(c.id)} className="text-red-600 hover:text-red-700">Delete</button>
+                              <td className="px-4 py-3 whitespace-nowrap text-right text-xs">
+                                <div className="inline-flex gap-2">
+                                  <button onClick={() => setEditingCategory({ ...c })} className="px-2 py-1 rounded bg-amber-100 text-amber-800 hover:bg-amber-200">Edit</button>
+                                  <button onClick={() => handleDeleteCategory(c.id)} className="px-2 py-1 rounded bg-red-100 text-red-700 hover:bg-red-200">Del</button>
+                                </div>
                               </td>
                             </tr>
                           ))}
@@ -625,21 +843,73 @@ const AdminDashboard: React.FC = () => {
                       </table>
                     </div>
 
-                    <div className="bg-white rounded-lg shadow p-4">
-                      <h4 className="font-semibold mb-2">Create / Edit Category</h4>
-                      <form onSubmit={handleSaveCategory} className="space-y-2">
-                        <div className="grid grid-cols-2 gap-2">
-                          <input value={editingCategory?.id ?? ''} onChange={e => setEditingCategory(prev => ({ ...(prev||{}), id: e.target.value }))} className="px-3 py-2 border rounded w-full" placeholder="ID / slug (optional)" />
-                          <input value={editingCategory?.name ?? categoryName ?? ''} onChange={e => {
-                            if (editingCategory) setEditingCategory(prev => ({ ...(prev||{}), name: e.target.value }));
-                            else setCategoryName(e.target.value);
-                          }} className="px-3 py-2 border rounded w-full" placeholder="Category name" />
+                    <div className="bg-white/80 backdrop-blur rounded-xl border border-gray-100 shadow-sm p-6">
+                      <div className="flex items-center gap-3 mb-6">
+                        <div className="h-8 w-8 rounded-lg bg-purple-100 flex items-center justify-center">
+                          <span className="text-purple-600 text-sm font-bold">+</span>
                         </div>
-                        <input value={editingCategory?.slug ?? ''} onChange={e => setEditingCategory(prev => ({ ...(prev||{}), slug: e.target.value }))} className="px-3 py-2 border rounded w-full" placeholder="Slug" />
-                        <textarea value={editingCategory?.description ?? ''} onChange={e => setEditingCategory(prev => ({ ...(prev||{}), description: e.target.value }))} className="px-3 py-2 border rounded w-full" placeholder="Description" />
-                        <div className="flex gap-2">
-                          <button type="submit" className="px-3 py-2 bg-amber-600 text-white rounded">Save</button>
-                          <button type="button" onClick={() => { setEditingCategory(null); setCategoryName(''); }} className="px-3 py-2 bg-gray-100 rounded">Cancel</button>
+                        <h3 className="text-lg font-semibold text-gray-900">
+                          {editingCategory ? 'Edit Category' : 'Create New Category'}
+                        </h3>
+                      </div>
+                      <form onSubmit={handleSaveCategory} className="space-y-5">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Category Name</label>
+                            <input
+                              value={editingCategory?.name ?? categoryName ?? ''}
+                              onChange={e => {
+                                if (editingCategory) setEditingCategory(prev => ({ ...(prev||{}), name: e.target.value }));
+                                else setCategoryName(e.target.value);
+                              }}
+                              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition"
+                              placeholder="Enter category name"
+                              required
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">ID / Slug (Optional)</label>
+                            <input
+                              value={editingCategory?.id ?? ''}
+                              onChange={e => setEditingCategory(prev => ({ ...(prev||{}), id: e.target.value }))}
+                              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition"
+                              placeholder="Auto-generated if empty"
+                            />
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">Slug</label>
+                          <input
+                            value={editingCategory?.slug ?? ''}
+                            onChange={e => setEditingCategory(prev => ({ ...(prev||{}), slug: e.target.value }))}
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition"
+                            placeholder="URL-friendly identifier"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
+                          <textarea
+                            value={editingCategory?.description ?? ''}
+                            onChange={e => setEditingCategory(prev => ({ ...(prev||{}), description: e.target.value }))}
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition resize-none"
+                            placeholder="Optional description"
+                            rows={3}
+                          />
+                        </div>
+                        <div className="flex items-center justify-end gap-3 pt-2">
+                          <button
+                            type="button"
+                            onClick={() => { setEditingCategory(null); setCategoryName(''); }}
+                            className="px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition font-medium"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            type="submit"
+                            className="px-4 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition font-medium shadow-sm"
+                          >
+                            {editingCategory ? 'Update Category' : 'Create Category'}
+                          </button>
                         </div>
                       </form>
                     </div>
@@ -649,36 +919,58 @@ const AdminDashboard: React.FC = () => {
                 {/* CUSTOMERS TABLE */}
                 {activeSection === 'customers' && (
                   <div>
-                    <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center justify-between mb-6">
                       <div className="flex items-center gap-3">
-                        <input value={customerSearch} onChange={e => setCustomerSearch(e.target.value)} placeholder="Search customers..." className="px-3 py-2 border rounded-lg w-64" />
-                        <button onClick={() => { setCustomerSearch(''); loadCustomers(); }} className="px-3 py-2 bg-gray-100 rounded">Clear</button>
+                        <div className="relative">
+                          <input
+                            value={customerSearch}
+                            onChange={e => setCustomerSearch(e.target.value)}
+                            placeholder="Search customers..."
+                            className="w-64 pl-4 pr-10 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition"
+                          />
+                          {customerSearch && (
+                            <button
+                              onClick={() => { setCustomerSearch(''); loadCustomers(); }}
+                              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                            >
+                              ✕
+                            </button>
+                          )}
+                        </div>
+                        <button
+                          onClick={() => { setCustomerSearch(''); loadCustomers(); }}
+                          className="px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition"
+                        >
+                          Clear
+                        </button>
                       </div>
-                      <div className="text-sm text-gray-600">{customers.length} customers</div>
+                      <div className="text-sm text-gray-600 bg-gray-50 px-3 py-1 rounded-full">
+                        {customers.length} customers
+                      </div>
                     </div>
 
-                    <div className="overflow-x-auto bg-white rounded-lg shadow">
-                      <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-50">
+                    <div className="overflow-auto rounded-xl ring-1 ring-gray-200 shadow-sm bg-white">
+                      <table className="min-w-full text-sm align-middle">
+                        <thead className="bg-gradient-to-b from-gray-50 to-gray-100 text-xs uppercase tracking-wide text-gray-600 sticky top-0 z-10">
                           <tr>
                             {(customers[0] ? Object.keys(customers[0]) : ['id','full_name']).map(k => (
-                              <th key={k} className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{k}</th>
+                              <th key={k} className="px-4 py-3 text-left font-semibold">{k}</th>
                             ))}
-                            <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
+                            <th className="px-4 py-3 text-right font-semibold">Actions</th>
                           </tr>
                         </thead>
-                        <tbody className="bg-white divide-y divide-gray-100">
+                        <tbody className="divide-y divide-gray-100">
                           {customers.filter(c => !customerSearch || String(c.full_name || c.email).toLowerCase().includes(customerSearch.toLowerCase())).map(c => (
-                            <tr key={c.id}>
+                            <tr key={c.id} className="hover:bg-amber-50/40 transition-colors">
                               {(Object.keys(c) as string[]).map(key => (
-                                <td key={key} className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">{(() => {
+                                <td key={key} className="px-4 py-3 whitespace-nowrap text-gray-700">{(() => {
                                   const v = ((c as unknown) as Record<string, unknown>)[key];
                                   if (key === 'created_at' && v) return new Date(String(v)).toLocaleDateString();
                                   return String(v ?? '');
                                 })()}</td>
                               ))}
-                              <td className="px-4 py-3 whitespace-nowrap text-right text-sm font-medium">
-                                <button onClick={() => handleDeleteCustomer(c.id)} className="text-red-600 hover:text-red-700">Delete</button>
+                              <td className="px-4 py-3 whitespace-nowrap text-right text-xs">
+                                <button onClick={() => handleDeleteCustomer(c.id)} className="px-2 py-1 rounded bg-red-100 text-red-700 hover:bg-red-200">Del</button>
                               </td>
                             </tr>
                           ))}
@@ -689,52 +981,113 @@ const AdminDashboard: React.FC = () => {
                 )}
               </div>
             </div>
-          </div>
-
-          <aside className="hidden lg:block">
-            <div className="bg-white rounded-lg shadow p-4 w-64 sticky top-24">
-              <div className="text-sm text-gray-500 mb-2">Admin Menu</div>
-              <nav className="flex flex-col gap-2">
-                <button onClick={() => { setActiveSection('products'); loadProducts(); }} className={`text-left px-3 py-2 rounded ${activeSection === 'products' ? 'bg-amber-600 text-white' : 'hover:bg-gray-50'}`}>Products</button>
-                <button onClick={() => { setActiveSection('orders'); loadOrders(); }} className={`text-left px-3 py-2 rounded ${activeSection === 'orders' ? 'bg-amber-600 text-white' : 'hover:bg-gray-50'}`}>Orders</button>
-                <button onClick={() => { setActiveSection('suppliers'); loadSuppliers(); }} className={`text-left px-3 py-2 rounded ${activeSection === 'suppliers' ? 'bg-amber-600 text-white' : 'hover:bg-gray-50'}`}>Suppliers</button>
-                <button onClick={() => { setActiveSection('customers'); loadCustomers(); }} className={`text-left px-3 py-2 rounded ${activeSection === 'customers' ? 'bg-amber-600 text-white' : 'hover:bg-gray-50'}`}>Customers</button>
-              </nav>
-            </div>
-          </aside>
+          </main>
         </div>
 
         {/* Order detail modal */}
         {selectedOrder && (
-          <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4">
-            <div className="bg-white rounded-lg w-full max-w-2xl p-6">
-              <div className="flex items-start justify-between">
-                <h3 className="text-xl font-semibold">Order #{selectedOrder.id}</h3>
-                <div className="flex gap-2">
-                  <button onClick={() => changeOrderStatusHandler(selectedOrder.id, 'processed')} className="px-3 py-1 bg-blue-600 text-white rounded">Mark Processed</button>
-                  <button onClick={() => changeOrderStatusHandler(selectedOrder.id, 'completed')} className="px-3 py-1 bg-green-600 text-white rounded">Mark Completed</button>
-                  <button onClick={() => changeOrderStatusHandler(selectedOrder.id, 'cancelled')} className="px-3 py-1 bg-red-600 text-white rounded">Cancel</button>
-                  <button onClick={() => setSelectedOrder(null)} className="px-3 py-1 bg-gray-100 rounded">Close</button>
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-xl w-full max-w-3xl max-h-[90vh] overflow-hidden shadow-2xl">
+              <div className="flex items-center justify-between p-6 border-b border-gray-100">
+                <div className="flex items-center gap-4">
+                  <div className="h-10 w-10 rounded-xl bg-blue-100 flex items-center justify-center">
+                    <span className="text-blue-600 font-bold">#</span>
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold text-gray-900">Order #{selectedOrder.id}</h2>
+                    <p className="text-sm text-gray-500">Order details and management</p>
+                  </div>
                 </div>
+                <button
+                  onClick={() => setSelectedOrder(null)}
+                  className="h-8 w-8 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition"
+                >
+                  ✕
+                </button>
               </div>
-              <div className="mt-4">
-                <div className="text-sm text-gray-600">Customer</div>
-                <div className="font-medium">{selectedOrder.customer_name || selectedOrder.customer_email || 'Guest'}</div>
-                <div className="text-sm text-gray-500">Status: {selectedOrder.status}</div>
 
-                <div className="mt-4">
-                  <h4 className="font-semibold">Items</h4>
-                  <div className="mt-2 space-y-2">
+              <div className="p-6 space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-4">
+                    <div>
+                      <label className="text-sm font-medium text-gray-500 uppercase tracking-wide">Customer</label>
+                      <div className="mt-1 text-lg font-semibold text-gray-900">
+                        {selectedOrder.customer_name || selectedOrder.customer_email || 'Guest Customer'}
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-500 uppercase tracking-wide">Status</label>
+                      <div className="mt-1">
+                        <span className={`inline-flex items-center rounded-full px-3 py-1 text-sm font-medium ${
+                          selectedOrder.status === 'completed' ? 'bg-green-100 text-green-800' :
+                          selectedOrder.status === 'processed' ? 'bg-blue-100 text-blue-800' :
+                          selectedOrder.status === 'cancelled' ? 'bg-red-100 text-red-800' :
+                          'bg-amber-100 text-amber-800'
+                        }`}>
+                          {selectedOrder.status || 'pending'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col justify-end">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-gray-500 uppercase tracking-wide">Quick Actions</label>
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          onClick={() => changeOrderStatusHandler(selectedOrder.id, 'processed')}
+                          className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition"
+                        >
+                          Mark Processed
+                        </button>
+                        <button
+                          onClick={() => changeOrderStatusHandler(selectedOrder.id, 'completed')}
+                          className="px-3 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition"
+                        >
+                          Mark Completed
+                        </button>
+                        <button
+                          onClick={() => changeOrderStatusHandler(selectedOrder.id, 'cancelled')}
+                          className="px-3 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg transition"
+                        >
+                          Cancel Order
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="border-t border-gray-100 pt-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                    <span className="h-5 w-5 rounded bg-gray-100 flex items-center justify-center text-xs">🛒</span>
+                    Order Items
+                  </h3>
+                  <div className="space-y-3">
                     {((selectedOrder.items || []) as unknown[]).map((it, idx) => {
                       const row = it as Record<string, unknown>;
                       return (
-                        <div key={idx} className="flex justify-between">
-                          <div>{String(row['name'] ?? 'Item')} x{String(row['quantity'] ?? '')}</div>
-                          <div>Rs. {String(row['total'] ?? '')}</div>
+                        <div key={idx} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                          <div className="flex items-center gap-3">
+                            <div className="h-8 w-8 rounded-lg bg-white border flex items-center justify-center text-sm font-medium text-gray-600">
+                              {idx + 1}
+                            </div>
+                            <div>
+                              <div className="font-medium text-gray-900">{String(row['name'] ?? 'Item')}</div>
+                              <div className="text-sm text-gray-500">Qty: {String(row['quantity'] ?? '1')}</div>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-lg font-semibold text-gray-900">₦{String(row['total'] ?? row['price'] ?? '0')}</div>
+                          </div>
                         </div>
                       );
                     })}
                   </div>
+                  {((selectedOrder.items || []) as unknown[]).length === 0 && (
+                    <div className="text-center py-8 text-gray-500">
+                      No items found in this order
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -743,53 +1096,234 @@ const AdminDashboard: React.FC = () => {
 
         {/* Edit/Create Modal */}
         {editingProduct !== null && (
-          <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4">
-            <div className="bg-white rounded-lg w-full max-w-lg p-6">
-              <h3 className="text-xl font-semibold mb-4">{editingProduct?.id ? 'Edit Product' : 'Create Product'}</h3>
-              <form onSubmit={handleSave} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Name</label>
-                  <input value={(editingProduct?.name ?? form.name) ?? ''} onChange={e => setEditingProduct(prev => ({ ...prev, name: e.target.value }))} className="w-full border px-3 py-2 rounded" />
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-xl w-full max-w-2xl max-h-[90vh] overflow-hidden shadow-2xl">
+              <div className="flex items-center justify-between p-6 border-b border-gray-100">
+                <div className="flex items-center gap-4">
+                  <div className="h-10 w-10 rounded-xl bg-amber-100 flex items-center justify-center">
+                    <span className="text-amber-600 text-lg">📦</span>
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold text-gray-900">
+                      {editingProduct?.id ? 'Edit Product' : 'Create New Product'}
+                    </h2>
+                    <p className="text-sm text-gray-500">
+                      {editingProduct?.id ? 'Update product information' : 'Add a new product to your catalog'}
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Description</label>
-                  <textarea value={(editingProduct?.description ?? form.description) ?? ''} onChange={e => setEditingProduct(prev => ({ ...prev, description: e.target.value }))} className="w-full border px-3 py-2 rounded" rows={3} />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Category</label>
-                  <select value={(editingProduct?.category ?? form.category) ?? ''} onChange={e => setEditingProduct(prev => ({ ...prev, category: e.target.value }))} className="w-full border px-3 py-2 rounded">
-                    <option value="">-- Select category --</option>
-                    {categoriesList.map(cat => (
-                      <option key={String(cat.id)} value={String(cat.id)}>{cat.name ?? String(cat.id)}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Price</label>
-                  <input type="number" value={(editingProduct?.price ?? form.price) ?? 0} onChange={e => setEditingProduct(prev => ({ ...prev, price: Number(e.target.value) }))} className="w-full border px-3 py-2 rounded" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Stock Quantity</label>
-                  <input type="number" value={(editingProduct?.stock_quantity ?? form.stock_quantity) ?? 0} onChange={e => setEditingProduct(prev => ({ ...prev, stock_quantity: Number(e.target.value) }))} className="w-full border px-3 py-2 rounded" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Image URL</label>
-                  <input value={(editingProduct?.image_url ?? form.image_url) ?? ''} onChange={e => setEditingProduct(prev => ({ ...prev, image_url: e.target.value }))} className="w-full border px-3 py-2 rounded" />
-                </div>
-                <div className="flex items-center gap-3">
-                  <label className="inline-flex items-center gap-2">
-                    <input type="checkbox" checked={!!(editingProduct?.is_bestseller ?? form.is_bestseller)} onChange={e => setEditingProduct(prev => ({ ...prev, is_bestseller: e.target.checked }))} />
-                    <span className="text-sm">Bestseller</span>
-                  </label>
-                  <label className="inline-flex items-center gap-2">
-                    <input type="checkbox" checked={!!(editingProduct?.is_new ?? form.is_new)} onChange={e => setEditingProduct(prev => ({ ...prev, is_new: e.target.checked }))} />
-                    <span className="text-sm">New</span>
-                  </label>
+                <button
+                  onClick={() => {
+                    setEditingProduct(null);
+                    setForm(defaultForm);
+                    setSelectedImageFile(null);
+                    setImagePreview(null);
+                  }}
+                  className="h-8 w-8 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <form onSubmit={handleSave} className="p-6 space-y-6 overflow-y-auto max-h-[calc(90vh-140px)]">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Product Name</label>
+                    <input
+                      value={(editingProduct?.name ?? form.name) ?? ''}
+                      onChange={e => setEditingProduct(prev => ({ ...prev, name: e.target.value }))}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition"
+                      placeholder="Enter product name"
+                      required
+                    />
+                  </div>
+
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
+                    <textarea
+                      value={(editingProduct?.description ?? form.description) ?? ''}
+                      onChange={e => setEditingProduct(prev => ({ ...prev, description: e.target.value }))}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition resize-none"
+                      placeholder="Describe the product"
+                      rows={4}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
+                    <select
+                      value={(editingProduct?.category ?? form.category) ?? ''}
+                      onChange={e => setEditingProduct(prev => ({ ...prev, category: e.target.value }))}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition"
+                    >
+                      <option value="">-- Select category --</option>
+                      {categoriesList.map(cat => (
+                        <option key={String(cat.id)} value={String(cat.id)}>{cat.name ?? String(cat.id)}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Price (₦)</label>
+                    <input
+                      type="number"
+                      value={(editingProduct?.price ?? form.price) ?? 0}
+                      onChange={e => setEditingProduct(prev => ({ ...prev, price: Number(e.target.value) }))}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition"
+                      placeholder="0.00"
+                      min="0"
+                      step="0.01"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Stock Quantity</label>
+                    <input
+                      type="number"
+                      value={(editingProduct?.stock_quantity ?? form.stock_quantity) ?? 0}
+                      onChange={e => setEditingProduct(prev => ({ ...prev, stock_quantity: Number(e.target.value) }))}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition"
+                      placeholder="0"
+                      min="0"
+                    />
+                  </div>
+
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Product Image</label>
+
+                    {/* Current Image Preview */}
+                    {(editingProduct?.image_url ?? form.image_url) && (
+                      <div className="mb-4">
+                        <p className="text-sm text-gray-600 mb-2">Current Image:</p>
+                        <div className="relative inline-block">
+                          <img
+                            src={editingProduct?.image_url ?? form.image_url}
+                            alt="Current product"
+                            className="w-24 h-24 object-cover rounded-lg border border-gray-200"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setEditingProduct(prev => ({ ...prev, image_url: '' }))}
+                            className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-red-600"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Image Upload Section */}
+                    <div className="space-y-4">
+                      <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-amber-400 transition-colors">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleImageSelect}
+                          className="hidden"
+                          id="image-upload"
+                        />
+                        <label htmlFor="image-upload" className="cursor-pointer">
+                          <div className="text-gray-500 mb-2">
+                            <svg className="mx-auto h-12 w-12" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                              <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+                          </div>
+                          <p className="text-sm text-gray-600">
+                            Click to upload or drag and drop
+                          </p>
+                          <p className="text-xs text-gray-500 mt-1">
+                            PNG, JPG, GIF up to 10MB
+                          </p>
+                        </label>
+                      </div>
+
+                      {/* Image Preview */}
+                      {imagePreview && (
+                        <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg">
+                          <img
+                            src={imagePreview}
+                            alt="Preview"
+                            className="w-16 h-16 object-cover rounded-lg border border-gray-200"
+                          />
+                          <div className="flex-1">
+                            <p className="text-sm font-medium text-gray-900">
+                              {selectedImageFile?.name}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              {(selectedImageFile?.size || 0) / 1024 / 1024 < 1
+                                ? `${Math.round((selectedImageFile?.size || 0) / 1024)} KB`
+                                : `${((selectedImageFile?.size || 0) / 1024 / 1024).toFixed(1)} MB`}
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={handleImageUpload}
+                            disabled={uploadingImage}
+                            className="px-4 py-2 bg-amber-600 text-white text-sm rounded-lg hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {uploadingImage ? 'Uploading...' : 'Upload'}
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Alternative: Manual URL Input */}
+                      <div className="pt-4 border-t border-gray-200">
+                        <p className="text-sm text-gray-600 mb-2">Or enter image URL manually:</p>
+                        <input
+                          value={(editingProduct?.image_url ?? form.image_url) ?? ''}
+                          onChange={e => setEditingProduct(prev => ({ ...prev, image_url: e.target.value }))}
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition"
+                          placeholder="https://example.com/image.jpg"
+                          type="url"
+                        />
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
-                <div className="flex justify-end gap-3">
-                  <button type="button" onClick={() => { setEditingProduct(null); setForm(defaultForm); }} className="px-4 py-2 bg-gray-100 rounded">Cancel</button>
-                  <button type="submit" className="px-4 py-2 bg-amber-600 text-white rounded">Save</button>
+                <div className="border-t border-gray-100 pt-6">
+                  <label className="block text-sm font-medium text-gray-700 mb-4">Product Attributes</label>
+                  <div className="flex flex-wrap gap-6">
+                    <label className="inline-flex items-center gap-3 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={!!(editingProduct?.is_bestseller ?? form.is_bestseller)}
+                        onChange={e => setEditingProduct(prev => ({ ...prev, is_bestseller: e.target.checked }))}
+                        className="h-4 w-4 text-amber-600 focus:ring-amber-500 border-gray-300 rounded"
+                      />
+                      <span className="text-sm font-medium text-gray-700">Bestseller</span>
+                    </label>
+                    <label className="inline-flex items-center gap-3 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={!!(editingProduct?.is_new ?? form.is_new)}
+                        onChange={e => setEditingProduct(prev => ({ ...prev, is_new: e.target.checked }))}
+                        className="h-4 w-4 text-amber-600 focus:ring-amber-500 border-gray-300 rounded"
+                      />
+                      <span className="text-sm font-medium text-gray-700">New Product</span>
+                    </label>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-end gap-3 pt-6 border-t border-gray-100">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditingProduct(null);
+                      setForm(defaultForm);
+                      setSelectedImageFile(null);
+                      setImagePreview(null);
+                    }}
+                    className="px-6 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition font-medium"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-6 py-2.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg transition font-medium shadow-sm"
+                  >
+                    {editingProduct?.id ? 'Update Product' : 'Create Product'}
+                  </button>
                 </div>
               </form>
             </div>
@@ -797,39 +1331,95 @@ const AdminDashboard: React.FC = () => {
         )}
         {stockHistoryFor !== null && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-lg w-full max-w-2xl p-6 max-h-[80vh] overflow-y-auto">
-              <div className="flex items-start justify-between mb-4">
-                <h3 className="text-lg font-semibold">Stock History (Product #{stockHistoryFor})</h3>
-                <button onClick={() => { setStockHistoryFor(null); setStockHistory([]); }} className="px-3 py-1 bg-gray-100 rounded">Close</button>
-              </div>
-              {loadingHistory && <div className="text-sm text-gray-500">Loading...</div>}
-              {!loadingHistory && stockHistory.length === 0 && <div className="text-sm text-gray-500">No history</div>}
-              {!loadingHistory && stockHistory.length > 0 && (
-                <div className="overflow-x-auto">
-                  <table className="min-w-full text-sm">
-                    <thead>
-                      <tr className="text-left border-b">
-                        <th className="py-2 pr-4">Time</th>
-                        <th className="py-2 pr-4">Change</th>
-                        <th className="py-2 pr-4">Old → New</th>
-                        <th className="py-2 pr-4">Reason</th>
-                        <th className="py-2 pr-4">Source</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {stockHistory.map(m => (
-                        <tr key={m.id} className="border-b last:border-b-0">
-                          <td className="py-1 pr-4 whitespace-nowrap">{new Date(m.created_at).toLocaleString()}</td>
-                          <td className={`py-1 pr-4 ${m.change < 0 ? 'text-red-600' : 'text-green-600'}`}>{m.change > 0 ? '+' : ''}{m.change}</td>
-                          <td className="py-1 pr-4">{m.old_quantity ?? 0} → {m.new_quantity ?? 0}</td>
-                          <td className="py-1 pr-4">{m.reason || '—'}</td>
-                          <td className="py-1 pr-4">{m.source || '—'}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+            <div className="bg-white rounded-xl w-full max-w-4xl max-h-[90vh] overflow-hidden shadow-2xl">
+              <div className="flex items-center justify-between p-6 border-b border-gray-100">
+                <div className="flex items-center gap-4">
+                  <div className="h-10 w-10 rounded-xl bg-green-100 flex items-center justify-center">
+                    <span className="text-green-600 text-lg">📊</span>
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold text-gray-900">Stock History</h2>
+                    <p className="text-sm text-gray-500">Product #{stockHistoryFor} inventory changes</p>
+                  </div>
                 </div>
-              )}
+                <button
+                  onClick={() => { setStockHistoryFor(null); setStockHistory([]); }}
+                  className="h-8 w-8 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="p-6">
+                {loadingHistory && (
+                  <div className="flex items-center justify-center py-12">
+                    <div className="flex items-center gap-3 text-gray-500">
+                      <div className="animate-spin h-5 w-5 border-2 border-gray-300 border-t-amber-600 rounded-full"></div>
+                      <span>Loading history...</span>
+                    </div>
+                  </div>
+                )}
+
+                {!loadingHistory && stockHistory.length === 0 && (
+                  <div className="text-center py-12">
+                    <div className="h-16 w-16 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-4">
+                      <span className="text-2xl">📭</span>
+                    </div>
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">No History Found</h3>
+                    <p className="text-gray-500">This product doesn't have any stock changes recorded yet.</p>
+                  </div>
+                )}
+
+                {!loadingHistory && stockHistory.length > 0 && (
+                  <div className="overflow-auto rounded-xl ring-1 ring-gray-200 shadow-sm bg-white">
+                    <table className="min-w-full text-sm align-middle">
+                      <thead className="bg-gradient-to-b from-gray-50 to-gray-100 text-xs uppercase tracking-wide text-gray-600 sticky top-0 z-10">
+                        <tr className="divide-x divide-gray-200/70">
+                          <th className="px-4 py-3 text-left font-semibold">Timestamp</th>
+                          <th className="px-4 py-3 text-left font-semibold">Change</th>
+                          <th className="px-4 py-3 text-left font-semibold">Stock Level</th>
+                          <th className="px-4 py-3 text-left font-semibold">Reason</th>
+                          <th className="px-4 py-3 text-left font-semibold">Source</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100">
+                        {stockHistory.map(m => (
+                          <tr key={m.id} className="hover:bg-amber-50/40 transition-colors">
+                            <td className="px-4 py-3 whitespace-nowrap text-gray-700">
+                              <div className="font-medium">{new Date(m.created_at).toLocaleDateString()}</div>
+                              <div className="text-xs text-gray-500">{new Date(m.created_at).toLocaleTimeString()}</div>
+                            </td>
+                            <td className="px-4 py-3 whitespace-nowrap">
+                              <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${
+                                m.change > 0 ? 'bg-green-100 text-green-800' :
+                                m.change < 0 ? 'bg-red-100 text-red-800' :
+                                'bg-gray-100 text-gray-800'
+                              }`}>
+                                {m.change > 0 ? '↗' : m.change < 0 ? '↘' : '→'} {m.change > 0 ? '+' : ''}{m.change}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3 whitespace-nowrap text-gray-700">
+                              <div className="flex items-center gap-2">
+                                <span className="text-gray-500">{m.old_quantity ?? 0}</span>
+                                <span className="text-gray-400">→</span>
+                                <span className="font-medium">{m.new_quantity ?? 0}</span>
+                              </div>
+                            </td>
+                            <td className="px-4 py-3 whitespace-nowrap text-gray-700">
+                              {m.reason || <span className="text-gray-400 italic">No reason</span>}
+                            </td>
+                            <td className="px-4 py-3 whitespace-nowrap text-gray-700">
+                              <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-gray-100 text-xs font-medium">
+                                {m.source === 'admin' ? '👤' : m.source === 'order' ? '🛒' : '⚙️'} {m.source || 'system'}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         )}

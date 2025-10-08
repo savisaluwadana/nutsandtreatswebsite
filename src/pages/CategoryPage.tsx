@@ -28,7 +28,7 @@ const CategoryPage: React.FC<CategoryPageProps> = ({ category, onNavigate }) => 
 
   // Filter and sort products
   const filteredProducts = useMemo(() => {
-    let filtered = categoryProducts.filter(product => {
+    const filtered = categoryProducts.filter(product => {
       const price = product.weights[0].price;
       const withinPriceRange = price >= priceRange[0] && price <= priceRange[1];
       const hasSelectedTags = selectedTags.length === 0 || 
@@ -66,19 +66,19 @@ const CategoryPage: React.FC<CategoryPageProps> = ({ category, onNavigate }) => 
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50">
       {/* Breadcrumb */}
-      <div className="bg-white border-b border-gray-200">
+      <div className="bg-white/80 backdrop-blur-sm border-b border-gray-200/70">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center text-sm text-gray-600">
-            <button 
+            <button
               onClick={() => onNavigate('home')}
-              className="hover:text-amber-600"
+              className="hover:text-amber-600 transition-colors font-medium"
             >
               Home
             </button>
-            <span className="mx-2">/</span>
-            <span className="text-gray-900 font-medium">
+            <span className="mx-2 text-gray-400">/</span>
+            <span className="text-gray-900 font-semibold">
               {categoryInfo?.name || 'Category'}
             </span>
           </div>
@@ -86,40 +86,40 @@ const CategoryPage: React.FC<CategoryPageProps> = ({ category, onNavigate }) => 
       </div>
 
       {/* Category Header */}
-      <div className="bg-white">
-        <div className="container mx-auto px-4 py-8">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="bg-gradient-to-r from-amber-600 to-orange-500 text-white">
+        <div className="container mx-auto px-4 py-12">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div>
-              <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">
+              <h1 className="text-4xl md:text-5xl font-bold mb-3 drop-shadow-lg">
                 {categoryInfo?.name || 'Products'}
               </h1>
-              <p className="text-gray-600">
-                {filteredProducts.length} products found
+              <p className="text-xl text-amber-100 font-medium">
+                {filteredProducts.length} premium products found
               </p>
             </div>
-            
+
             {/* Sort Dropdown */}
             <div className="flex items-center gap-4">
               <div className="relative">
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value)}
-                  className="appearance-none bg-white border border-gray-300 rounded-lg px-4 py-2 pr-8 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  className="appearance-none bg-white/20 backdrop-blur-sm border border-white/30 rounded-xl px-6 py-3 pr-10 text-white placeholder-white/70 focus:outline-none focus:ring-2 focus:ring-white/50 focus:border-white/50 transition-all duration-300 hover:bg-white/30"
                 >
-                  <option value="popularity">Sort by Popularity</option>
-                  <option value="newest">Newest First</option>
-                  <option value="price-low-high">Price: Low to High</option>
-                  <option value="price-high-low">Price: High to Low</option>
-                  <option value="rating">Highest Rated</option>
+                  <option value="popularity" className="text-gray-900">Sort by Popularity</option>
+                  <option value="newest" className="text-gray-900">Newest First</option>
+                  <option value="price-low-high" className="text-gray-900">Price: Low to High</option>
+                  <option value="price-high-low" className="text-gray-900">Price: High to Low</option>
+                  <option value="rating" className="text-gray-900">Highest Rated</option>
                 </select>
-                <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-white/80" />
               </div>
-              
+
               <button
                 onClick={() => setIsFilterOpen(true)}
-                className="md:hidden bg-amber-600 text-white px-4 py-2 rounded-lg flex items-center"
+                className="md:hidden bg-white/20 backdrop-blur-sm border border-white/30 text-white px-6 py-3 rounded-xl flex items-center hover:bg-white/30 transition-all duration-300 shadow-lg"
               >
-                <Filter className="h-4 w-4 mr-2" />
+                <Filter className="h-5 w-5 mr-2" />
                 Filters
               </button>
             </div>
@@ -130,14 +130,14 @@ const CategoryPage: React.FC<CategoryPageProps> = ({ category, onNavigate }) => 
       <div className="container mx-auto px-4 py-8">
         <div className="flex gap-8">
           {/* Desktop Filters Sidebar */}
-          <div className="hidden md:block w-64 flex-shrink-0">
-            <div className="bg-white rounded-lg shadow-sm p-6 sticky top-24">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-semibold text-gray-900">Filters</h3>
+          <div className="hidden md:block w-72 flex-shrink-0">
+            <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-200/70 p-6 sticky top-24">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="font-bold text-gray-900 text-lg">Filters</h3>
                 {(selectedTags.length > 0 || priceRange[0] > 0 || priceRange[1] < 10000) && (
                   <button
                     onClick={clearFilters}
-                    className="text-sm text-amber-600 hover:text-amber-700"
+                    className="text-sm text-amber-600 hover:text-amber-700 font-semibold transition-colors hover:scale-105"
                   >
                     Clear All
                   </button>
@@ -145,37 +145,43 @@ const CategoryPage: React.FC<CategoryPageProps> = ({ category, onNavigate }) => 
               </div>
 
               {/* Price Range */}
-              <div className="mb-6">
-                <h4 className="font-medium text-gray-900 mb-3">Price Range</h4>
-                <div className="space-y-3">
+              <div className="mb-8">
+                <h4 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                  <span className="w-1 h-4 bg-gradient-to-b from-amber-600 to-orange-500 rounded-full"></span>
+                  Price Range
+                </h4>
+                <div className="space-y-4">
                   <input
                     type="range"
                     min="0"
                     max="10000"
                     value={priceRange[1]}
                     onChange={(e) => setPriceRange([priceRange[0], parseInt(e.target.value)])}
-                    className="w-full"
+                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
                   />
-                  <div className="flex items-center justify-between text-sm text-gray-600">
-                    <span>Rs. {priceRange[0].toLocaleString()}</span>
-                    <span>Rs. {priceRange[1].toLocaleString()}</span>
+                  <div className="flex items-center justify-between text-sm font-medium">
+                    <span className="text-gray-700">Rs. {priceRange[0].toLocaleString()}</span>
+                    <span className="text-gray-700">Rs. {priceRange[1].toLocaleString()}</span>
                   </div>
                 </div>
               </div>
 
               {/* Tags Filter */}
               <div className="mb-6">
-                <h4 className="font-medium text-gray-900 mb-3">Features</h4>
-                <div className="space-y-2">
+                <h4 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                  <span className="w-1 h-4 bg-gradient-to-b from-amber-600 to-orange-500 rounded-full"></span>
+                  Features
+                </h4>
+                <div className="space-y-3">
                   {allTags.map(tag => (
-                    <label key={tag} className="flex items-center">
+                    <label key={tag} className="flex items-center group cursor-pointer">
                       <input
                         type="checkbox"
                         checked={selectedTags.includes(tag)}
                         onChange={() => handleTagToggle(tag)}
-                        className="rounded border-gray-300 text-amber-600 focus:ring-amber-500"
+                        className="rounded border-gray-300 text-amber-600 focus:ring-amber-500 focus:ring-2 transition-all"
                       />
-                      <span className="ml-2 text-sm text-gray-700">{tag}</span>
+                      <span className="ml-3 text-sm text-gray-700 group-hover:text-gray-900 transition-colors">{tag}</span>
                     </label>
                   ))}
                 </div>
@@ -186,17 +192,22 @@ const CategoryPage: React.FC<CategoryPageProps> = ({ category, onNavigate }) => 
           {/* Products Grid */}
           <div className="flex-1">
             {filteredProducts.length === 0 ? (
-              <div className="text-center py-12">
-                <p className="text-gray-600 text-lg">No products found matching your criteria.</p>
+              <div className="text-center py-16">
+                <div className="h-20 w-20 rounded-full bg-gradient-to-br from-amber-100 to-orange-100 flex items-center justify-center mx-auto mb-6">
+                  <span className="text-3xl">🔍</span>
+                </div>
+                <h3 className="text-2xl font-bold text-gray-900 mb-3">No products found</h3>
+                <p className="text-gray-600 mb-8 text-lg">Try adjusting your filters to see more products.</p>
                 <button
                   onClick={clearFilters}
-                  className="mt-4 text-amber-600 hover:text-amber-700 font-medium"
+                  className="inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-amber-600 to-orange-500 text-white rounded-xl font-bold hover:scale-105 transition-all duration-300 shadow-xl"
                 >
-                  Clear filters to see all products
+                  <Filter className="h-5 w-5" />
+                  Clear All Filters
                 </button>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
                 {filteredProducts.map(product => (
                   <ProductCard
                     key={product.id}
@@ -212,65 +223,71 @@ const CategoryPage: React.FC<CategoryPageProps> = ({ category, onNavigate }) => 
 
       {/* Mobile Filter Modal */}
       {isFilterOpen && (
-        <div className="fixed inset-0 z-50 bg-black bg-opacity-50 md:hidden">
-          <div className="absolute inset-y-0 right-0 w-80 bg-white">
-            <div className="p-4 border-b border-gray-200 flex items-center justify-between">
-              <h3 className="font-semibold text-gray-900">Filters</h3>
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm md:hidden">
+          <div className="absolute inset-y-0 right-0 w-80 bg-white shadow-2xl">
+            <div className="p-6 border-b border-gray-200/70 flex items-center justify-between bg-gradient-to-r from-amber-600 to-orange-500 text-white rounded-tl-2xl">
+              <h3 className="font-bold text-lg">Filters</h3>
               <button
                 onClick={() => setIsFilterOpen(false)}
-                className="text-gray-400 hover:text-gray-600"
+                className="text-white/80 hover:text-white transition-colors p-2 hover:bg-white/20 rounded-lg"
               >
                 <X className="h-6 w-6" />
               </button>
             </div>
-            
-            <div className="p-4 overflow-y-auto h-full">
+
+            <div className="p-6 overflow-y-auto h-full pb-32">
               {/* Mobile filter content - same as desktop */}
-              <div className="mb-6">
-                <h4 className="font-medium text-gray-900 mb-3">Price Range</h4>
-                <div className="space-y-3">
+              <div className="mb-8">
+                <h4 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                  <span className="w-1 h-4 bg-gradient-to-b from-amber-600 to-orange-500 rounded-full"></span>
+                  Price Range
+                </h4>
+                <div className="space-y-4">
                   <input
                     type="range"
                     min="0"
                     max="10000"
                     value={priceRange[1]}
                     onChange={(e) => setPriceRange([priceRange[0], parseInt(e.target.value)])}
-                    className="w-full"
+                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
                   />
-                  <div className="flex items-center justify-between text-sm text-gray-600">
-                    <span>Rs. {priceRange[0].toLocaleString()}</span>
-                    <span>Rs. {priceRange[1].toLocaleString()}</span>
+                  <div className="flex items-center justify-between text-sm font-medium">
+                    <span className="text-gray-700">Rs. {priceRange[0].toLocaleString()}</span>
+                    <span className="text-gray-700">Rs. {priceRange[1].toLocaleString()}</span>
                   </div>
                 </div>
               </div>
 
               <div className="mb-6">
-                <h4 className="font-medium text-gray-900 mb-3">Features</h4>
-                <div className="space-y-2">
+                <h4 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                  <span className="w-1 h-4 bg-gradient-to-b from-amber-600 to-orange-500 rounded-full"></span>
+                  Features
+                </h4>
+                <div className="space-y-3">
                   {allTags.map(tag => (
-                    <label key={tag} className="flex items-center">
+                    <label key={tag} className="flex items-center group cursor-pointer">
                       <input
                         type="checkbox"
                         checked={selectedTags.includes(tag)}
                         onChange={() => handleTagToggle(tag)}
-                        className="rounded border-gray-300 text-amber-600 focus:ring-amber-500"
+                        className="rounded border-gray-300 text-amber-600 focus:ring-amber-500 focus:ring-2 transition-all"
                       />
-                      <span className="ml-2 text-sm text-gray-700">{tag}</span>
+                      <span className="ml-3 text-sm text-gray-700 group-hover:text-gray-900 transition-colors">{tag}</span>
                     </label>
                   ))}
                 </div>
               </div>
 
-              <div className="border-t border-gray-200 pt-4 mt-auto">
+              <div className="fixed bottom-0 left-0 right-0 p-6 bg-white border-t border-gray-200/70 md:hidden">
                 <button
                   onClick={clearFilters}
-                  className="w-full bg-gray-100 text-gray-700 py-2 rounded-lg mb-2"
+                  className="w-full bg-gray-100 text-gray-700 py-3 rounded-xl mb-3 font-semibold hover:bg-gray-200 transition-colors"
                 >
                   Clear Filters
                 </button>
                 <button
                   onClick={() => setIsFilterOpen(false)}
-                  className="w-full bg-amber-600 text-white py-2 rounded-lg"
+                  className="w-full bg-gradient-to-r from-amber-600 to-orange-500 text-white py-3 rounded-xl font-bold hover:scale-105 transition-all duration-300 shadow-lg"
                 >
                   Apply Filters
                 </button>
