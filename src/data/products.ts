@@ -4,8 +4,8 @@ export interface Product {
   category: string;
   price: number;
   originalPrice?: number;
-  image: string;
-  images: string[];
+  image?: string;
+  images?: string[];
   description: string;
   shortDescription: string;
   weights: { size: string; price: number; originalPrice?: number }[];

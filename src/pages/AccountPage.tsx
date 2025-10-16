@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/useAuth';
-import { ArrowLeft, Mail, Lock, User as UserIcon, LogOut, Bell, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Mail, Lock, User as UserIcon, Bell, AlertTriangle } from 'lucide-react';
 import { getAllOrders, Order } from '../services/adminOrderService';
 import { useToast } from '../context/ToastContext';
 
@@ -24,6 +24,13 @@ const AccountPage: React.FC<AccountPageProps> = ({ onNavigate }) => {
   const [city, setCity] = useState('');
   const [stateRegion, setStateRegion] = useState('');
   const [country, setCountry] = useState('');
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [updatingPassword, setUpdatingPassword] = useState(false);
+  const [orderUpdates, setOrderUpdates] = useState(true);
+  const [promotionalEmails, setPromotionalEmails] = useState(false);
+  const [newProductAlerts, setNewProductAlerts] = useState(true);
   const [savingProfile, setSavingProfile] = useState(false);
   const [profileSavedAt, setProfileSavedAt] = useState<number | null>(null);
 
@@ -109,12 +116,97 @@ const AccountPage: React.FC<AccountPageProps> = ({ onNavigate }) => {
     }
   };
 
+  const handleUpdatePassword = async () => {
+    if (!user) return;
+    if (newPassword !== confirmPassword) {
+      setError('New passwords do not match');
+      push('New passwords do not match', { type: 'error' });
+      return;
+    }
+    if (newPassword.length < 6) {
+      setError('Password must be at least 6 characters long');
+      push('Password must be at least 6 characters long', { type: 'error' });
+      return;
+    }
+    setUpdatingPassword(true);
+    try {
+      const { supabase } = await import('../lib/supabase');
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) throw error;
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      push('Password updated successfully', { type: 'success' });
+    } catch (err) {
+      console.error('Failed updating password', err);
+      setError('Failed to update password');
+      push('Failed to update password', { type: 'error' });
+    } finally {
+      setUpdatingPassword(false);
+    }
+  };
+
+  const handleDownloadData = async () => {
+    if (!user) return;
+    try {
+      const { supabase } = await import('../lib/supabase');
+      // Get user profile data
+      const { data: profile } = await supabase.from('user_profiles').select('*').eq('id', user.id).single();
+      // Get user orders
+      const userOrders = await getAllOrders();
+      const userOrderData = userOrders.filter(o => o.user_id === user.id);
+
+      const userData = {
+        profile: profile || {},
+        orders: userOrderData,
+        exportDate: new Date().toISOString()
+      };
+
+      const dataStr = JSON.stringify(userData, null, 2);
+      const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+
+      const exportFileDefaultName = `nutsandtreats-data-${user.email}-${new Date().toISOString().split('T')[0]}.json`;
+
+      const linkElement = document.createElement('a');
+      linkElement.setAttribute('href', dataUri);
+      linkElement.setAttribute('download', exportFileDefaultName);
+      linkElement.click();
+
+      push('Data download initiated', { type: 'success' });
+    } catch (err) {
+      console.error('Failed downloading data', err);
+      push('Failed to download data', { type: 'error' });
+    }
+  };
+
   const handleSignOut = async () => {
     try {
       await signOut();
       onNavigate('home');
     } catch (err) {
       console.error('Sign out failed', err);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!user) return;
+    const confirmDelete = window.confirm('Are you sure you want to delete your account? This action cannot be undone.');
+    if (!confirmDelete) return;
+
+    try {
+      const { supabase } = await import('../lib/supabase');
+      // Delete user profile data
+      await supabase.from('user_profiles').delete().eq('id', user.id);
+      // Delete user (this will be handled by Supabase auth)
+      const { error } = await supabase.auth.admin.deleteUser(user.id);
+      if (error) throw error;
+
+      await signOut();
+      onNavigate('home');
+      push('Account deleted successfully', { type: 'success' });
+    } catch (err) {
+      console.error('Failed deleting account', err);
+      push('Failed to delete account', { type: 'error' });
     }
   };
 
@@ -162,77 +254,78 @@ const AccountPage: React.FC<AccountPageProps> = ({ onNavigate }) => {
 
       {/* Main Content */}
       <div className="container mx-auto px-4 py-12">
-        <div className="max-w-md mx-auto">
+        <div className="max-w-6xl mx-auto">
           {user ? (
-            <div className="relative rounded-2xl p-6 overflow-hidden shadow-xl bg-gradient-to-br from-white/80 to-amber-50 backdrop-blur-sm ring-1 ring-white/60">
+            <div className="relative rounded-3xl p-8 overflow-hidden shadow-2xl bg-gradient-to-br from-white/90 to-amber-50 backdrop-blur-sm ring-1 ring-white/60">
               <div className="absolute inset-0 pointer-events-none opacity-40" style={{background:'radial-gradient(circle at 20% 20%, rgba(253,230,138,.6), transparent 60%)'}}></div>
               <div className="absolute -top-12 -right-12 w-40 h-40 bg-amber-200/40 rounded-full blur-3xl" />
-              <div className="flex items-center gap-6 mb-6">
-                <div className="w-20 h-20 bg-gradient-to-tr from-amber-500 to-orange-400 rounded-full flex items-center justify-center shadow-lg shadow-amber-500/30 ring-4 ring-white/50">
-                  <UserIcon className="h-10 w-10 text-white drop-shadow" />
+              <div className="flex items-center gap-8 mb-8">
+                <div className="w-24 h-24 bg-gradient-to-tr from-amber-500 to-orange-400 rounded-full flex items-center justify-center shadow-lg shadow-amber-500/30 ring-4 ring-white/50">
+                  <UserIcon className="h-12 w-12 text-white drop-shadow" />
                 </div>
                 <div>
-                  <h2 className="text-2xl font-bold text-gray-900 tracking-tight flex items-center gap-2">{fullName || user.email}</h2>
-                  <p className="text-gray-600 text-sm font-medium">{user.email}</p>
+                  <h2 className="text-3xl font-bold text-gray-900 tracking-tight flex items-center gap-2">{fullName || user.email}</h2>
+                  <p className="text-gray-600 text-lg font-medium">{user.email}</p>
                 </div>
               </div>
 
-              <div className="mb-6 border-b pb-4">
-                <nav className="flex gap-2">
+              <div className="mb-8 border-b pb-6">
+                <nav className="flex gap-4">
                   {['profile','orders','settings'].map(tab => (
-                    <button key={tab} onClick={()=> setActiveTab(tab as typeof activeTab)} className={`relative px-4 py-2 rounded-full text-sm font-medium transition-all ${activeTab===tab ? 'text-white bg-gradient-to-r from-amber-600 to-orange-500 shadow-lg shadow-amber-500/30' : 'text-gray-600 bg-white/70 hover:bg-white border border-gray-200'}`}>{tab.charAt(0).toUpperCase()+tab.slice(1)} {activeTab===tab && <span className="absolute inset-0 rounded-full ring-2 ring-white/40"/>}</button>
+                    <button key={tab} onClick={()=> setActiveTab(tab as typeof activeTab)} className={`relative px-8 py-4 rounded-2xl text-base font-semibold transition-all ${activeTab===tab ? 'text-white bg-gradient-to-r from-amber-600 to-orange-500 shadow-xl shadow-amber-500/30' : 'text-gray-600 bg-white/70 hover:bg-white border border-gray-200 hover:shadow-md'}`}>{tab.charAt(0).toUpperCase()+tab.slice(1)} {activeTab===tab && <span className="absolute inset-0 rounded-2xl ring-2 ring-white/40"/>}</button>
                   ))}
                 </nav>
               </div>
 
               <div>
                 {activeTab === 'profile' && (
-                  <div className="space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="space-y-2">
-                        <label className="block text-sm font-semibold text-gray-700">Full Name</label>
+                  <div className="space-y-10">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                      <div className="space-y-3">
+                        <label className="block text-lg font-bold text-gray-800">Full Name</label>
                         <input
                           value={fullName}
                           onChange={e => setFullName(e.target.value)}
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors bg-white/70"
+                          className="w-full px-6 py-4 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-4 focus:ring-amber-500/20 focus:border-amber-500 transition-all bg-white/90 text-lg shadow-sm"
                           placeholder="Enter your full name"
                         />
                       </div>
-                      <div className="space-y-2">
-                        <label className="block text-sm font-semibold text-gray-700">Phone Number</label>
+                      <div className="space-y-3">
+                        <label className="block text-lg font-bold text-gray-800">Phone Number</label>
                         <input
                           value={phone}
                           onChange={e => setPhone(e.target.value)}
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors bg-white/70"
+                          className="w-full px-6 py-4 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-4 focus:ring-amber-500/20 focus:border-amber-500 transition-all bg-white/90 text-lg shadow-sm"
                           placeholder="Enter your phone number"
                         />
                       </div>
                     </div>
-
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                      <div className="flex items-center gap-3 mb-2">
-                        <div className="h-5 w-5 rounded-full bg-blue-100 flex items-center justify-center">
-                          <Mail className="h-3 w-3 text-blue-600" />
+                    <div className="bg-gradient-to-r from-indigo-50 via-blue-50 to-purple-50 border-2 border-blue-200 rounded-2xl p-8 shadow-xl">
+                      <div className="flex items-center gap-4 mb-4">
+                        <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center shadow-lg">
+                          <Mail className="h-6 w-6 text-blue-600" />
                         </div>
-                        <span className="text-sm font-medium text-blue-800">Email Address</span>
+                        <div>
+                          <span className="text-lg font-bold text-blue-800">Email Address</span>
+                          <p className="text-sm text-blue-600">This email is used for account access and notifications</p>
+                        </div>
                       </div>
-                      <p className="text-blue-700 ml-8">{user.email}</p>
-                      <p className="text-xs text-blue-600 ml-8 mt-1">Email cannot be changed from here</p>
+                      <p className="text-blue-700 text-xl font-semibold ml-16">{user.email}</p>
+                      <p className="text-sm text-blue-600 ml-16 mt-2">Email cannot be changed from here for security reasons</p>
                     </div>
-
-                    <div className="flex items-center justify-between pt-4 border-t border-gray-200">
-                      <div className="flex items-center gap-4">
+                    <div className="flex flex-col sm:flex-row items-center justify-between pt-8 border-t-2 border-gray-200 gap-6">
+                      <div className="flex flex-col sm:flex-row items-center gap-6">
                         <button
                           onClick={handleSaveProfile}
                           disabled={savingProfile}
-                          className="px-6 py-3 bg-gradient-to-r from-amber-600 to-orange-500 text-white rounded-lg font-semibold hover:scale-105 transition-all duration-300 shadow-lg disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-2"
+                          className="px-8 py-4 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-2xl font-bold text-lg hover:scale-105 transition-all duration-300 shadow-xl disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-3 hover:shadow-2xl"
                         >
                           {savingProfile && (
-                            <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                            <div className="h-5 w-5 border-3 border-white border-t-transparent rounded-full animate-spin" />
                           )}
                           {profileSavedAt && !savingProfile ? (
                             <>
-                              <span className="text-green-300">✓</span>
+                              <span className="text-green-300 text-2xl">✓</span>
                               Saved Successfully
                             </>
                           ) : (
@@ -240,17 +333,16 @@ const AccountPage: React.FC<AccountPageProps> = ({ onNavigate }) => {
                           )}
                         </button>
                         <button
-                          className="px-6 py-3 bg-white/70 hover:bg-white border border-gray-200 rounded-lg text-gray-700 font-medium transition-colors"
+                          className="px-8 py-4 bg-white/90 hover:bg-white border-2 border-gray-200 rounded-2xl text-gray-700 font-bold text-lg transition-all shadow-lg hover:shadow-xl"
                           onClick={() => onNavigate('home')}
                         >
                           Back to Shop
                         </button>
                       </div>
                       <button
-                        className="px-6 py-3 bg-gradient-to-r from-red-600 to-rose-600 text-white rounded-lg font-semibold hover:scale-105 transition-all duration-300 shadow-lg flex items-center gap-2"
+                        className="px-8 py-4 bg-red-500 hover:bg-red-600 text-white rounded-2xl font-bold text-lg transition-all duration-300 shadow-xl flex items-center gap-3 hover:shadow-2xl"
                         onClick={handleSignOut}
                       >
-                        <LogOut className="h-4 w-4" />
                         Sign Out
                       </button>
                     </div>
@@ -258,33 +350,38 @@ const AccountPage: React.FC<AccountPageProps> = ({ onNavigate }) => {
                 )}
 
                 {activeTab === 'orders' && (
-                  <div className="space-y-4">
+                  <div className="space-y-8">
                     {orders.length === 0 ? (
-                      <div className="text-center py-12">
-                        <div className="h-16 w-16 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-4">
-                          <span className="text-2xl">📦</span>
+                      <div className="text-center py-16">
+                        <div className="h-20 w-20 rounded-full bg-gradient-to-br from-amber-100 to-orange-100 flex items-center justify-center mx-auto mb-6 shadow-xl">
+                          <span className="text-4xl">📦</span>
                         </div>
-                        <h3 className="text-lg font-medium text-gray-900 mb-2">No Orders Yet</h3>
-                        <p className="text-gray-600 mb-6">You haven't placed any orders yet.</p>
+                        <h3 className="text-2xl font-bold text-gray-900 mb-4">No Orders Yet</h3>
+                        <p className="text-gray-600 text-lg mb-8 max-w-md mx-auto">You haven't placed any orders yet. Start exploring our delicious selection of nuts and treats!</p>
                         <button
                           onClick={() => onNavigate('home')}
-                          className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-amber-600 to-orange-500 text-white rounded-lg font-semibold hover:scale-105 transition-all duration-300 shadow-lg"
+                          className="inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-amber-600 to-orange-500 text-white rounded-2xl font-bold text-lg hover:scale-105 transition-all duration-300 shadow-xl hover:shadow-2xl"
                         >
+                          <span className="text-xl">🛒</span>
                           Start Shopping
                         </button>
                       </div>
                     ) : (
-                      <div className="space-y-4">
+                      <div className="space-y-6">
+                        <div className="text-center mb-8">
+                          <h3 className="text-2xl font-bold text-gray-900 mb-2">Your Orders</h3>
+                          <p className="text-gray-600 text-lg">Track and manage your order history</p>
+                        </div>
                         {orders.map(o => (
-                          <div key={o.id} className="group border border-gray-200/70 rounded-xl p-6 bg-white/70 hover:bg-white hover:shadow-lg transition-all duration-300">
-                            <div className="flex items-center justify-between mb-4">
-                              <div className="flex items-center gap-3">
-                                <div className="h-10 w-10 rounded-lg bg-amber-100 flex items-center justify-center">
-                                  <span className="text-amber-600 text-sm">📦</span>
+                          <div key={o.id} className="group border-2 border-gray-200/70 rounded-2xl p-8 bg-white/90 hover:bg-white hover:shadow-2xl transition-all duration-300 shadow-xl">
+                            <div className="flex items-center justify-between mb-6">
+                              <div className="flex items-center gap-4">
+                                <div className="h-14 w-14 rounded-xl bg-gradient-to-br from-amber-100 to-orange-100 flex items-center justify-center shadow-lg">
+                                  <span className="text-2xl">📦</span>
                                 </div>
                                 <div>
-                                  <h3 className="font-bold text-gray-900">Order #{o.id}</h3>
-                                  <p className="text-sm text-gray-600">
+                                  <h3 className="font-bold text-gray-900 text-xl">Order #{o.id}</h3>
+                                  <p className="text-gray-600 text-lg font-medium">
                                     {o.created_at ? new Date(o.created_at).toLocaleDateString('en-US', {
                                       year: 'numeric',
                                       month: 'long',
@@ -293,7 +390,7 @@ const AccountPage: React.FC<AccountPageProps> = ({ onNavigate }) => {
                                   </p>
                                 </div>
                               </div>
-                              <div className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                              <div className={`px-4 py-2 rounded-full text-sm font-bold ${
                                 o.status === 'completed' ? 'bg-green-100 text-green-800' :
                                 o.status === 'processing' ? 'bg-blue-100 text-blue-800' :
                                 o.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
@@ -304,14 +401,14 @@ const AccountPage: React.FC<AccountPageProps> = ({ onNavigate }) => {
                             </div>
 
                             <div className="flex items-center justify-between">
-                              <div className="text-sm text-gray-600">
+                              <div className="text-gray-600 text-lg">
                                 {o.items?.length || 0} item{o.items?.length !== 1 ? 's' : ''}
                               </div>
                               <div className="text-right">
-                                <div className="text-xl font-bold text-gray-900">
+                                <div className="text-2xl font-bold text-gray-900 mb-2">
                                   Rs. {o.total?.toLocaleString() || '0'}
                                 </div>
-                                <button className="text-sm text-amber-600 hover:text-amber-700 font-medium transition-colors">
+                                <button className="text-amber-600 hover:text-amber-700 font-bold text-lg transition-colors underline decoration-2 underline-offset-2">
                                   View Details →
                                 </button>
                               </div>
@@ -324,115 +421,151 @@ const AccountPage: React.FC<AccountPageProps> = ({ onNavigate }) => {
                 )}
 
                 {activeTab === 'settings' && (
-                  <div className="space-y-6">
+                  <div className="space-y-8">
                     {/* Password Change Section */}
-                    <div className="bg-white/70 border border-gray-200/70 rounded-xl p-6">
-                      <div className="flex items-center gap-3 mb-4">
-                        <div className="h-10 w-10 rounded-lg bg-amber-100 flex items-center justify-center">
-                          <Lock className="h-5 w-5 text-amber-600" />
+                    <div className="bg-white/90 border-2 border-gray-200/70 rounded-2xl p-8 shadow-xl">
+                      <div className="flex items-center gap-4 mb-6">
+                        <div className="h-12 w-12 rounded-xl bg-amber-100 flex items-center justify-center shadow-lg">
+                          <Lock className="h-6 w-6 text-amber-600" />
                         </div>
                         <div>
-                          <h3 className="font-bold text-gray-900">Change Password</h3>
-                          <p className="text-sm text-gray-600">Update your account password</p>
+                          <h3 className="font-bold text-gray-900 text-xl">Change Password</h3>
+                          <p className="text-gray-600 text-lg">Update your account password for better security</p>
                         </div>
                       </div>
 
-                      <div className="space-y-4">
+                      <div className="space-y-6">
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">Current Password</label>
+                          <label className="block text-lg font-bold text-gray-800 mb-3">Current Password</label>
                           <input
                             type="password"
-                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-colors"
+                            value={currentPassword}
+                            onChange={e => setCurrentPassword(e.target.value)}
+                            className="w-full px-6 py-4 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-4 focus:ring-amber-500/20 focus:border-amber-500 transition-all bg-white/90 text-lg shadow-sm"
                             placeholder="Enter current password"
                           />
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">New Password</label>
+                          <label className="block text-lg font-bold text-gray-800 mb-3">New Password</label>
                           <input
                             type="password"
-                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-colors"
+                            value={newPassword}
+                            onChange={e => setNewPassword(e.target.value)}
+                            className="w-full px-6 py-4 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-4 focus:ring-amber-500/20 focus:border-amber-500 transition-all bg-white/90 text-lg shadow-sm"
                             placeholder="Enter new password"
                           />
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">Confirm New Password</label>
+                          <label className="block text-lg font-bold text-gray-800 mb-3">Confirm New Password</label>
                           <input
                             type="password"
-                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-colors"
+                            value={confirmPassword}
+                            onChange={e => setConfirmPassword(e.target.value)}
+                            className="w-full px-6 py-4 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-4 focus:ring-amber-500/20 focus:border-amber-500 transition-all bg-white/90 text-lg shadow-sm"
                             placeholder="Confirm new password"
                           />
                         </div>
-                        <button className="px-6 py-3 bg-gradient-to-r from-amber-600 to-orange-500 text-white rounded-lg font-semibold hover:scale-105 transition-all duration-300 shadow-lg">
+                        <button
+                          onClick={handleUpdatePassword}
+                          disabled={updatingPassword}
+                          className="px-8 py-4 bg-gradient-to-r from-amber-600 to-orange-500 text-white rounded-2xl font-bold text-lg hover:scale-105 transition-all duration-300 shadow-xl disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-3 hover:shadow-2xl"
+                        >
+                          {updatingPassword && (
+                            <div className="h-5 w-5 border-3 border-white border-t-transparent rounded-full animate-spin" />
+                          )}
                           Update Password
                         </button>
                       </div>
                     </div>
 
                     {/* Notification Preferences */}
-                    <div className="bg-white/70 border border-gray-200/70 rounded-xl p-6">
-                      <div className="flex items-center gap-3 mb-4">
-                        <div className="h-10 w-10 rounded-lg bg-blue-100 flex items-center justify-center">
-                          <Bell className="h-5 w-5 text-blue-600" />
+                    <div className="bg-white/90 border-2 border-gray-200/70 rounded-2xl p-8 shadow-xl">
+                      <div className="flex items-center gap-4 mb-6">
+                        <div className="h-12 w-12 rounded-xl bg-blue-100 flex items-center justify-center shadow-lg">
+                          <Bell className="h-6 w-6 text-blue-600" />
                         </div>
                         <div>
-                          <h3 className="font-bold text-gray-900">Notifications</h3>
-                          <p className="text-sm text-gray-600">Manage your notification preferences</p>
+                          <h3 className="font-bold text-gray-900 text-xl">Notifications</h3>
+                          <p className="text-gray-600 text-lg">Manage your notification preferences</p>
                         </div>
                       </div>
 
-                      <div className="space-y-4">
-                        <div className="flex items-center justify-between">
+                      <div className="space-y-6">
+                        <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
                           <div>
-                            <h4 className="font-medium text-gray-900">Order Updates</h4>
-                            <p className="text-sm text-gray-600">Receive updates about your orders</p>
+                            <h4 className="font-bold text-gray-900 text-lg">Order Updates</h4>
+                            <p className="text-gray-600">Receive updates about your orders and shipping status</p>
                           </div>
                           <label className="relative inline-flex items-center cursor-pointer">
-                            <input type="checkbox" className="sr-only peer" defaultChecked />
-                            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-amber-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-600"></div>
+                            <input
+                              type="checkbox"
+                              checked={orderUpdates}
+                              onChange={e => setOrderUpdates(e.target.checked)}
+                              className="sr-only peer"
+                            />
+                            <div className="w-14 h-8 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-amber-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-amber-600"></div>
                           </label>
                         </div>
 
-                        <div className="flex items-center justify-between">
+                        <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
                           <div>
-                            <h4 className="font-medium text-gray-900">Promotional Emails</h4>
-                            <p className="text-sm text-gray-600">Receive special offers and promotions</p>
+                            <h4 className="font-bold text-gray-900 text-lg">Promotional Emails</h4>
+                            <p className="text-gray-600">Receive special offers and promotions</p>
                           </div>
                           <label className="relative inline-flex items-center cursor-pointer">
-                            <input type="checkbox" className="sr-only peer" />
-                            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-amber-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-600"></div>
+                            <input
+                              type="checkbox"
+                              checked={promotionalEmails}
+                              onChange={e => setPromotionalEmails(e.target.checked)}
+                              className="sr-only peer"
+                            />
+                            <div className="w-14 h-8 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-amber-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-amber-600"></div>
                           </label>
                         </div>
 
-                        <div className="flex items-center justify-between">
+                        <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
                           <div>
-                            <h4 className="font-medium text-gray-900">New Product Alerts</h4>
-                            <p className="text-sm text-gray-600">Get notified about new products</p>
+                            <h4 className="font-bold text-gray-900 text-lg">New Product Alerts</h4>
+                            <p className="text-gray-600">Get notified about new products and seasonal specials</p>
                           </div>
                           <label className="relative inline-flex items-center cursor-pointer">
-                            <input type="checkbox" className="sr-only peer" defaultChecked />
-                            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-amber-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-600"></div>
+                            <input
+                              type="checkbox"
+                              checked={newProductAlerts}
+                              onChange={e => setNewProductAlerts(e.target.checked)}
+                              className="sr-only peer"
+                            />
+                            <div className="w-14 h-8 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-amber-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-amber-600"></div>
                           </label>
                         </div>
                       </div>
                     </div>
 
                     {/* Account Actions */}
-                    <div className="bg-white/70 border border-gray-200/70 rounded-xl p-6">
-                      <div className="flex items-center gap-3 mb-4">
-                        <div className="h-10 w-10 rounded-lg bg-red-100 flex items-center justify-center">
-                          <AlertTriangle className="h-5 w-5 text-red-600" />
+                    <div className="bg-white/90 border-2 border-gray-200/70 rounded-2xl p-8 shadow-xl">
+                      <div className="flex items-center gap-4 mb-6">
+                        <div className="h-12 w-12 rounded-xl bg-red-100 flex items-center justify-center shadow-lg">
+                          <AlertTriangle className="h-6 w-6 text-red-600" />
                         </div>
                         <div>
-                          <h3 className="font-bold text-gray-900">Account Actions</h3>
-                          <p className="text-sm text-gray-600">Manage your account</p>
+                          <h3 className="font-bold text-gray-900 text-xl">Account Actions</h3>
+                          <p className="text-gray-600 text-lg">Manage your account data and settings</p>
                         </div>
                       </div>
 
-                      <div className="space-y-3">
-                        <button className="w-full text-left px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-gray-700 font-medium">
+                      <div className="space-y-4">
+                        <button
+                          onClick={handleDownloadData}
+                          className="w-full text-left px-6 py-4 border-2 border-gray-300 rounded-xl hover:bg-gray-50 transition-all text-gray-700 font-bold text-lg shadow-lg hover:shadow-xl flex items-center gap-3"
+                        >
+                          <span className="text-2xl">📥</span>
                           Download My Data
                         </button>
-                        <button className="w-full text-left px-4 py-3 border border-red-300 rounded-lg hover:bg-red-50 transition-colors text-red-700 font-medium">
+                        <button
+                          onClick={handleDeleteAccount}
+                          className="w-full text-left px-6 py-4 border-2 border-red-300 rounded-xl hover:bg-red-50 transition-all text-red-700 font-bold text-lg shadow-lg hover:shadow-xl flex items-center gap-3"
+                        >
+                          <span className="text-2xl">🗑️</span>
                           Delete Account
                         </button>
                       </div>

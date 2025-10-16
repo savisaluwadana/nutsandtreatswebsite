@@ -9,7 +9,7 @@ export interface Product {
   // legacy: some deployments store a text `category`; newer schemas use `category_id` (numeric)
   category?: string;
   category_id?: number | string;
-  image_url: string;
+  image_url?: string;
   stock_quantity: number;
   is_bestseller: boolean;
   is_new: boolean;
@@ -296,6 +296,8 @@ export async function adjustProductStock(id: number, delta: number): Promise<Pro
     .single();
   if (upd.error) throw upd.error;
   try {
+    // Get the current user's ID for RLS policy
+    const { data: { user } } = await supabase.auth.getUser();
     await logStockMovement({
       product_id: id,
       change: delta,
@@ -303,7 +305,7 @@ export async function adjustProductStock(id: number, delta: number): Promise<Pro
       new_quantity: newQty,
       reason: 'manual-adjust',
       source: 'admin-ui',
-      user_id: null,
+      user_id: user?.id || null,
     });
   } catch (e) { console.warn('Failed to log stock movement', e); }
   return upd.data as Product;
@@ -321,6 +323,8 @@ export async function setProductStock(id: number, value: number): Promise<Produc
     .single();
   if (error) throw error;
   try {
+    // Get the current user's ID for RLS policy
+    const { data: { user } } = await supabase.auth.getUser();
     await logStockMovement({
       product_id: id,
       change: (qty - (current?.stock_quantity ?? 0)),
@@ -328,8 +332,33 @@ export async function setProductStock(id: number, value: number): Promise<Produc
       new_quantity: qty,
       reason: 'manual-set',
       source: 'admin-ui',
-      user_id: null,
+      user_id: user?.id || null,
     });
   } catch (e) { console.warn('Failed to log stock movement', e); }
   return data as Product;
+}
+
+// Upload product image to Supabase Storage and return a public URL
+export async function uploadProductImage(file: File | Blob, pathPrefix = ''): Promise<string> {
+  const bucket = 'product-images';
+  // Build a safe path
+  const fileName = (file as File).name ? `${Date.now()}-${(file as File).name}` : `${Date.now()}.jpg`;
+  const path = `${pathPrefix}${fileName}`;
+
+  // Upload the file
+  const uploadResult = await supabase.storage.from(bucket).upload(path, file as File, { upsert: true });
+  if (uploadResult.error) {
+    console.error('Error uploading image to storage:', uploadResult.error);
+    throw uploadResult.error;
+  }
+
+  // getPublicUrl is synchronous in the client and returns { data: { publicUrl } }
+  const publicResp = supabase.storage.from(bucket).getPublicUrl(path);
+  const publicUrl = publicResp?.data?.publicUrl;
+  if (!publicUrl) {
+    // Fallback to a relative path if public URL cannot be constructed
+    return `/images/products/${fileName}`;
+  }
+
+  return publicUrl;
 }

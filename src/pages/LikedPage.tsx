@@ -100,7 +100,7 @@ const LikedPage: React.FC<LikedPageProps> = ({ onNavigate }) => {
 
                     <div className="flex items-center justify-between mb-3">
                       <span className="text-lg font-bold text-amber-600">
-                        ${product.price}
+                        Rs. {product.price}
                       </span>
                       <span className="text-sm text-gray-500 capitalize">
                         {product.category}

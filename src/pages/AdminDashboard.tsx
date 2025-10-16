@@ -6,6 +6,7 @@ import {
   updateProduct,
   deleteProduct,
   bulkCreateProducts,
+  uploadProductImage,
   Product,
 } from '../services/productService';
 import { adaptProductToUIFormat, setCachedCategories } from '../services/productAdapter';
@@ -88,37 +89,17 @@ const AdminDashboard: React.FC = () => {
     }
   };
 
-  const uploadImage = async (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        // In a real application, you would upload to a cloud storage service
-        // For now, we'll simulate by creating a local path
-        const fileName = `${Date.now()}-${file.name}`;
-        const localPath = `/images/products/${fileName}`;
-
-        // Simulate upload delay
-        setTimeout(() => {
-          resolve(localPath);
-        }, 1000);
-      };
-      reader.onerror = () => reject(new Error('Failed to read file'));
-      reader.readAsDataURL(file);
-    });
-  };
-
   const handleImageUpload = async () => {
     if (!selectedImageFile) return;
-
     setUploadingImage(true);
     try {
-      const imageUrl = await uploadImage(selectedImageFile);
-      setEditingProduct(prev => ({ ...prev, image_url: imageUrl }));
+      const publicUrl = await uploadProductImage(selectedImageFile, `${(editingProduct?.category ?? 'uncategorized')}/`);
+      setEditingProduct(prev => ({ ...prev, image_url: publicUrl }));
       setSelectedImageFile(null);
       setImagePreview(null);
-    } catch (error) {
-      console.error('Failed to upload image:', error);
-      alert('Failed to upload image. Please try again.');
+    } catch (err) {
+      console.error('Image upload failed:', err);
+      alert('Image upload failed: ' + (err as Error).message);
     } finally {
       setUploadingImage(false);
     }
@@ -173,19 +154,25 @@ const AdminDashboard: React.FC = () => {
     }
   };
 
-  // Removed initial products-only load to ensure categories fetch first for proper name resolution
-
+  // Load initial data when component mounts and auth is ready
   useEffect(() => {
     // when auth finishes (login flow), refresh admin lists; load categories first so product adapter can resolve names
     if (authLoading) return;
     if (!isAdmin) return;
-    (async () => {
-      await loadCategories();
-      await loadProducts();
-      loadOrders();
-      loadSuppliers();
-      loadCustomers();
-    })();
+    
+    const loadInitialData = async () => {
+      try {
+        await loadCategories();
+        await loadProducts();
+        await loadOrders();
+        await loadSuppliers();
+        await loadCustomers();
+      } catch (error) {
+        console.error('Error loading initial data:', error);
+      }
+    };
+    
+    loadInitialData();
   }, [authLoading, isAdmin]);
 
   // When categoriesList is updated, prime the adapter cache and force products to re-render
@@ -244,6 +231,23 @@ const AdminDashboard: React.FC = () => {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      // If an image file has been selected but not yet uploaded, upload it first
+      if (selectedImageFile) {
+        try {
+          const rawCategory = (editingProduct?.category ?? form.category) ?? 'uncategorized';
+          const prefix = String(rawCategory).toLowerCase().replace(/[^a-z0-9-_]/gi, '-') + '/';
+          const publicUrl = await uploadProductImage(selectedImageFile, prefix);
+          // apply uploaded image to both editingProduct and form so subsequent payloads include it
+          setEditingProduct(prev => ({ ...prev, image_url: publicUrl }));
+          setForm(prev => ({ ...prev, image_url: publicUrl }));
+          setSelectedImageFile(null);
+          setImagePreview(null);
+        } catch (err) {
+          console.error('Image upload failed during save:', err);
+          alert('Image upload failed: ' + (err as Error).message);
+        }
+      }
+
       if (editingProduct && editingProduct.id) {
         const id = editingProduct.id as number;
         const payload = { ...editingProduct } as Partial<Product>;
@@ -337,14 +341,25 @@ const AdminDashboard: React.FC = () => {
     e.preventDefault();
     try {
       if (editingCategory && editingCategory.id) {
+        // Editing existing category
         const id = editingCategory.id as string | number;
-        const updated = await updateCategory(id, { name: editingCategory.name });
+        const updated = await updateCategory(id, { 
+          name: editingCategory.name,
+          slug: editingCategory.slug,
+          description: editingCategory.description
+        });
         setCategoriesList(prev => prev.map(c => (c.id === updated.id ? updated : c)));
       } else {
-        const created = await createCategory({ name: categoryName });
+        // Creating new category - use editingCategory.name if modal was opened, otherwise categoryName
+        const nameToUse = editingCategory?.name || categoryName;
+        const created = await createCategory({ 
+          name: nameToUse,
+          slug: editingCategory?.slug,
+          description: editingCategory?.description
+        });
         setCategoriesList(prev => [created, ...prev]);
       }
-  try { window.dispatchEvent(new Event('app:categories:update')); } catch { void 0; }
+      try { window.dispatchEvent(new Event('app:categories:update')); } catch { void 0; }
       setEditingCategory(null);
       setCategoryName('');
     } catch (err) {
@@ -367,104 +382,163 @@ const AdminDashboard: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-white to-orange-50">
-      <div className="max-w-7xl mx-auto px-4 py-10">
-        <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-10">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight text-gray-900 flex items-center gap-3">
-              <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-amber-600 text-white shadow">AD</span>
-              <span>Admin Dashboard</span>
-            </h1>
-            <p className="text-sm text-gray-500 mt-1">Signed in as <span className="font-medium text-gray-700">{user?.email}</span></p>
-          </div>
-          {activeSection === 'products' && (
-            <button
-              onClick={async () => { if (categoriesList.length === 0) await loadCategories(); openEdit(); }}
-              className="inline-flex items-center justify-center gap-2 rounded-lg bg-amber-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 transition"
-            >
-              <span className="text-lg leading-none">＋</span> New Product
-            </button>
-          )}
-        </header>
-
-        <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-10">
-          <div className="relative overflow-hidden rounded-xl bg-white/70 backdrop-blur border border-amber-100 p-5 shadow-sm hover:shadow group transition">
-            <div className="absolute -right-6 -top-6 h-16 w-16 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 opacity-10 group-hover:opacity-20 transition" />
-            <div className="text-xs uppercase tracking-wide text-amber-600 font-semibold mb-1">Products</div>
-            <div className="text-3xl font-bold text-gray-900">{products.length}</div>
-            <div className="mt-1 text-[11px] text-gray-500">Total products</div>
-          </div>
-          <div className="relative overflow-hidden rounded-xl bg-white/70 backdrop-blur border border-blue-100 p-5 shadow-sm hover:shadow group transition">
-            <div className="absolute -right-6 -top-6 h-16 w-16 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 opacity-10 group-hover:opacity-20 transition" />
-            <div className="text-xs uppercase tracking-wide text-blue-600 font-semibold mb-1">Orders</div>
-            <div className="text-3xl font-bold text-gray-900">{orders.length}</div>
-            <div className="mt-1 text-[11px] text-gray-500">Total orders</div>
-          </div>
-            <div className="relative overflow-hidden rounded-xl bg-white/70 backdrop-blur border border-green-100 p-5 shadow-sm hover:shadow group transition">
-              <div className="absolute -right-6 -top-6 h-16 w-16 rounded-full bg-gradient-to-br from-green-400 to-green-600 opacity-10 group-hover:opacity-20 transition" />
-              <div className="text-xs uppercase tracking-wide text-green-600 font-semibold mb-1">Customers</div>
-              <div className="text-3xl font-bold text-gray-900">{customers.length}</div>
-              <div className="mt-1 text-[11px] text-gray-500">Registered users</div>
+    <div className="min-h-screen bg-gray-50">
+      {/* Modern Top Navigation */}
+      <header className="sticky top-0 z-50 bg-white border-b border-gray-200 shadow-sm">
+        <div className="max-w-[1600px] mx-auto px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-3">
+                <div className="h-9 w-9 rounded-lg bg-gradient-to-br from-violet-600 to-indigo-600 flex items-center justify-center">
+                  <span className="text-white font-bold text-lg">N</span>
+                </div>
+                <div>
+                  <h1 className="text-lg font-semibold text-gray-900">Nuts & Treats</h1>
+                  <p className="text-xs text-gray-500">Admin Panel</p>
+                </div>
+              </div>
             </div>
-          <div className="relative overflow-hidden rounded-xl bg-white/70 backdrop-blur border border-purple-100 p-5 shadow-sm hover:shadow group transition">
-            <div className="absolute -right-6 -top-6 h-16 w-16 rounded-full bg-gradient-to-br from-purple-400 to-purple-600 opacity-10 group-hover:opacity-20 transition" />
-            <div className="text-xs uppercase tracking-wide text-purple-600 font-semibold mb-1">Categories</div>
-            <div className="text-3xl font-bold text-gray-900">{categoriesList.length}</div>
-            <div className="mt-1 text-[11px] text-gray-500">Available categories</div>
+            <div className="flex items-center gap-4">
+              <span className="text-sm text-gray-600">
+                {user?.email}
+              </span>
+              <div className="h-9 w-9 rounded-full bg-violet-100 flex items-center justify-center">
+                <span className="text-sm font-semibold text-violet-700">
+                  {user?.email?.charAt(0).toUpperCase()}
+                </span>
+              </div>
+            </div>
           </div>
-        </section>
+        </div>
+      </header>
 
-        <div className="flex flex-col lg:flex-row gap-8">
-          <aside className="w-full lg:w-56 shrink-0">
-            <nav className="sticky top-24 space-y-1 bg-white/80 backdrop-blur border border-gray-100 rounded-xl p-3 shadow-sm">
+      <div className="flex">
+        {/* Modern Sidebar */}
+        <aside className="w-64 min-h-[calc(100vh-73px)] bg-white border-r border-gray-200">
+          <nav className="p-4">
+            <div className="mb-6">
+              <p className="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                Overview
+              </p>
+            </div>
+            <div className="space-y-1">
               {([
-                { key: 'products', label: 'Products', action: () => loadProducts() },
-                { key: 'orders', label: 'Orders', action: () => loadOrders() },
-                { key: 'suppliers', label: 'Suppliers', action: () => loadSuppliers() },
-                { key: 'customers', label: 'Customers', action: () => loadCustomers() },
-                { key: 'categories', label: 'Categories', action: () => loadCategories() },
-              ] as Array<{ key: typeof activeSection; label: string; action: () => void }>).map(item => (
+                { key: 'products', label: 'Products', icon: '📦' },
+                { key: 'orders', label: 'Orders', icon: '🛒' },
+                { key: 'customers', label: 'Customers', icon: '👥' },
+                { key: 'suppliers', label: 'Suppliers', icon: '🏢' },
+                { key: 'categories', label: 'Categories', icon: '🏷️' },
+              ] as Array<{ key: typeof activeSection; label: string; icon: string }>).map(item => (
                 <button
                   key={item.key}
-                  onClick={() => { setActiveSection(item.key); item.action(); }}
-                  className={`group w-full flex items-center justify-between rounded-lg px-3 py-2 text-sm font-medium transition border ${
+                  onClick={() => { 
+                    setActiveSection(item.key); 
+                    ({
+                      products: loadProducts,
+                      orders: loadOrders,
+                      suppliers: loadSuppliers,
+                      customers: loadCustomers,
+                      categories: loadCategories,
+                    } as Record<string, () => void>)[item.key]();
+                  }}
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-all ${
                     activeSection === item.key
-                      ? 'bg-amber-600 text-white border-amber-600 shadow'
-                      : 'bg-white/50 hover:bg-amber-50 text-gray-700 border-transparent'
+                      ? 'bg-violet-50 text-violet-700'
+                      : 'text-gray-700 hover:bg-gray-50'
                   }`}
                 >
-                  <span>{item.label}</span>
-                  {activeSection === item.key && <span className="text-xs bg-white/20 px-2 py-0.5 rounded-full">•</span>}
+                  <span className="text-lg">{item.icon}</span>
+                  <span className="flex-1 text-left">{item.label}</span>
+                  {activeSection === item.key && (
+                    <div className="w-1.5 h-1.5 rounded-full bg-violet-600"></div>
+                  )}
                 </button>
               ))}
-            </nav>
-          </aside>
+            </div>
+          </nav>
+        </aside>
 
-          <main className="flex-1 space-y-8">
-            <div className="bg-white/80 backdrop-blur rounded-xl border border-gray-100 shadow-sm p-6">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-                <div className="flex flex-wrap gap-2">
-                  {(['products','orders','suppliers','customers','categories'] as typeof activeSection[]).map(sec => (
-                    <button
-                      key={sec}
-                      onClick={() => { setActiveSection(sec); ({
-                        products: loadProducts,
-                        orders: loadOrders,
-                        suppliers: loadSuppliers,
-                        customers: loadCustomers,
-                        categories: loadCategories,
-                      } as Record<string, () => void>)[sec](); }}
-                      className={`px-3 py-1.5 rounded-md text-sm font-medium transition border ${
-                        activeSection === sec ? 'bg-amber-600 text-white border-amber-600 shadow' : 'bg-gray-100 hover:bg-gray-200 text-gray-700 border-transparent'
-                      }`}
-                    >
-                      {sec.charAt(0).toUpperCase() + sec.slice(1)}
-                    </button>
-                  ))}
+        {/* Main Content Area */}
+        <main className="flex-1 overflow-auto">
+          <div className="max-w-[1600px] mx-auto p-6">
+            {/* Stats Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+              <div className="bg-white rounded-lg border border-gray-200 p-5 hover:shadow-sm transition-shadow">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600 mb-1">Products</p>
+                    <p className="text-2xl font-bold text-gray-900">{products.length}</p>
+                    <p className="text-xs text-gray-500 mt-1">Total items</p>
+                  </div>
+                  <div className="h-10 w-10 rounded-lg bg-blue-50 flex items-center justify-center">
+                    <span className="text-xl">📦</span>
+                  </div>
                 </div>
-                {activeSection === 'products' && (
-                  <button onClick={async () => { if (categoriesList.length === 0) await loadCategories(); openEdit(); }} className="inline-flex items-center gap-2 rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white shadow hover:bg-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 transition">+ New Product</button>
-                )}
+              </div>
+              <div className="bg-white rounded-lg border border-gray-200 p-5 hover:shadow-sm transition-shadow">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600 mb-1">Orders</p>
+                    <p className="text-2xl font-bold text-gray-900">{orders.length}</p>
+                    <p className="text-xs text-gray-500 mt-1">Total orders</p>
+                  </div>
+                  <div className="h-10 w-10 rounded-lg bg-green-50 flex items-center justify-center">
+                    <span className="text-xl">🛒</span>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-white rounded-lg border border-gray-200 p-5 hover:shadow-sm transition-shadow">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600 mb-1">Customers</p>
+                    <p className="text-2xl font-bold text-gray-900">{customers.length}</p>
+                    <p className="text-xs text-gray-500 mt-1">Registered</p>
+                  </div>
+                  <div className="h-10 w-10 rounded-lg bg-purple-50 flex items-center justify-center">
+                    <span className="text-xl">👥</span>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-white rounded-lg border border-gray-200 p-5 hover:shadow-sm transition-shadow">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600 mb-1">Categories</p>
+                    <p className="text-2xl font-bold text-gray-900">{categoriesList.length}</p>
+                    <p className="text-xs text-gray-500 mt-1">Active</p>
+                  </div>
+                  <div className="h-10 w-10 rounded-lg bg-orange-50 flex items-center justify-center">
+                    <span className="text-xl">🏷️</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Content Section */}
+            <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
+              <div className="px-6 py-4 border-b border-gray-200">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-lg font-semibold text-gray-900">
+                    {activeSection.charAt(0).toUpperCase() + activeSection.slice(1)}
+                  </h2>
+                  <div className="flex items-center gap-3">
+                    {activeSection === 'products' && (
+                      <button
+                        onClick={async () => { if (categoriesList.length === 0) await loadCategories(); openEdit(); }}
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-violet-600 text-white text-sm font-medium rounded-lg hover:bg-violet-700 transition-colors"
+                      >
+                        <span>+</span> Add Product
+                      </button>
+                    )}
+                    {activeSection === 'categories' && (
+                      <button
+                        onClick={() => setEditingCategory({ name: '' })}
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-violet-600 text-white text-sm font-medium rounded-lg hover:bg-violet-700 transition-colors"
+                      >
+                        <span>+</span> Add Category
+                      </button>
+                    )}
+                  </div>
+                </div>
               </div>
               <div>
                 {/* PRODUCTS TABLE */}
@@ -584,59 +658,118 @@ const AdminDashboard: React.FC = () => {
                       <div />
                     </div>
 
-                    <div className="overflow-auto rounded-xl ring-1 ring-gray-200 shadow-sm bg-white">
-                      <table className="min-w-full text-sm align-middle">
-                        <thead className="bg-gradient-to-b from-gray-50 to-gray-100 text-xs uppercase tracking-wide text-gray-600 sticky top-0 z-10">
-                          <tr className="divide-x divide-gray-200/70">
-                            <th className="px-4 py-3 text-left font-semibold">Name</th>
-                            <th className="px-4 py-3 text-left font-semibold">Category</th>
-                            <th className="px-4 py-3 text-left font-semibold">Price</th>
-                            <th className="px-4 py-3 text-left font-semibold">Stock</th>
-                            <th className="px-4 py-3 text-left font-semibold">Tags</th>
-                            <th className="px-4 py-3 text-right font-semibold">Actions</th>
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product</th>
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stock</th>
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                            <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                           </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-100">
+                        <tbody className="bg-white divide-y divide-gray-200">
                           {products.filter(p => !productSearch || String(p.name).toLowerCase().includes(productSearch.toLowerCase())).map(p => {
                             const low = (p.stock_quantity ?? 0) <= LOW_STOCK_THRESHOLD;
                             return (
-                              <tr key={p.id} className="hover:bg-amber-50/40 transition-colors">
-                                <td className="px-4 py-3 whitespace-nowrap max-w-xs">
-                                  <div className="font-medium text-gray-900 truncate">{p.name}</div>
-                                  {p.description && <div className="text-[11px] text-gray-500 line-clamp-2">{p.description}</div>}
-                                </td>
-                                <td className="px-4 py-3 whitespace-nowrap text-gray-700">{resolveCategoryDisplay(p) || '—'}</td>
-                                <td className="px-4 py-3 whitespace-nowrap text-gray-700">₦{p.price}</td>
-                                <td className="px-4 py-3 whitespace-nowrap text-gray-700">
-                                  <div className={`inline-flex items-center gap-2 rounded-full border px-2 py-1 text-xs ${low ? 'border-red-300 bg-red-50 text-red-700' : 'border-gray-200 bg-gray-50'}`}> 
-                                    <button type="button" onClick={async () => { try { const updated = await adjustProductStock(p.id, -1); setProducts(prev => prev.map(x => x.id === p.id ? updated : x)); } catch { alert('Stock update failed'); } }} className="h-5 w-5 flex items-center justify-center rounded bg-white border hover:bg-gray-100">-</button>
-                                    <span className="min-w-[1.5rem] text-center font-medium">{p.stock_quantity ?? 0}</span>
-                                    <button type="button" onClick={async () => { try { const updated = await adjustProductStock(p.id, 1); setProducts(prev => prev.map(x => x.id === p.id ? updated : x)); } catch { alert('Stock update failed'); } }} className="h-5 w-5 flex items-center justify-center rounded bg-white border hover:bg-gray-100">+</button>
+                              <tr key={p.id} className="hover:bg-gray-50 transition-colors">
+                                <td className="px-6 py-4">
+                                  <div className="flex items-center">
+                                    <div className="flex-shrink-0 h-10 w-10 bg-gray-100 rounded-lg flex items-center justify-center">
+                                      <span className="text-lg">📦</span>
+                                    </div>
+                                    <div className="ml-4">
+                                      <div className="text-sm font-medium text-gray-900">{p.name}</div>
+                                      {p.description && <div className="text-xs text-gray-500 truncate max-w-xs">{p.description.substring(0, 50)}...</div>}
+                                    </div>
                                   </div>
-                                  <div className="mt-1 flex items-center gap-1">
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                    {resolveCategoryDisplay(p) || 'Uncategorized'}
+                                  </span>
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">Rs. {p.price.toLocaleString()}</td>
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                  <div className="flex items-center gap-2">
+                                  <div className={`inline-flex items-center gap-2 rounded-lg border px-2.5 py-1.5 text-sm ${low ? 'border-red-200 bg-red-50 text-red-700' : 'border-gray-200 bg-gray-50 text-gray-700'}`}> 
+                                    <button type="button" onClick={async () => { 
+                                      if (!p.id) { alert('Product ID is missing'); return; }
+                                      try { 
+                                        const updated = await adjustProductStock(p.id, -1); 
+                                        setProducts(prev => prev.map(x => x.id === p.id ? updated : x)); 
+                                      } catch (err) { 
+                                        console.error('Stock update failed:', err);
+                                        alert('Stock update failed: ' + (err as Error).message); 
+                                      } 
+                                    }} className="h-5 w-5 flex items-center justify-center rounded bg-white border hover:bg-gray-100">-</button>
+                                    <span className="min-w-[1.5rem] text-center font-medium">{p.stock_quantity ?? 0}</span>
+                                    <button type="button" onClick={async () => { 
+                                      if (!p.id) { alert('Product ID is missing'); return; }
+                                      try { 
+                                        const updated = await adjustProductStock(p.id, 1); 
+                                        setProducts(prev => prev.map(x => x.id === p.id ? updated : x)); 
+                                      } catch (err) { 
+                                        console.error('Stock update failed:', err);
+                                        alert('Stock update failed: ' + (err as Error).message); 
+                                      } 
+                                    }} className="h-5 w-5 flex items-center justify-center rounded bg-white border hover:bg-gray-100">+</button>
+                                  </div>
+                                  </div>
+                                  <div className="mt-2 flex items-center gap-1">
                                     <input
                                       type="number"
                                       className="w-16 border rounded px-1 py-0.5 text-xs focus:ring-amber-500 focus:border-amber-500"
-                                      value={stockEdit[p.id] ?? ''}
+                                      value={p.id ? (stockEdit[p.id] ?? '') : ''}
                                       placeholder="set"
-                                      onChange={e => setStockEdit(prev => ({ ...prev, [p.id]: e.target.value }))}
+                                      onChange={e => {
+                                        if (p.id) {
+                                          setStockEdit(prev => ({ ...prev, [p.id]: e.target.value }));
+                                        }
+                                      }}
                                     />
                                     <button type="button" className="text-xs px-2 py-0.5 bg-amber-600 text-white rounded hover:bg-amber-700"
                                       onClick={async () => {
+                                        if (!p.id) { alert('Product ID is missing'); return; }
                                         const raw = stockEdit[p.id];
                                         if (raw == null || raw === '') return;
                                         const val = Number(raw);
                                         if (Number.isNaN(val) || val < 0) { alert('Enter a non-negative number'); return; }
-                                        try { const updated = await setProductStock(p.id, val); setProducts(prev => prev.map(x => x.id === p.id ? updated : x)); setStockEdit(prev => { const c = { ...prev }; delete c[p.id]; return c; }); } catch { alert('Set stock failed'); }
+                                        try { 
+                                          const updated = await setProductStock(p.id, val); 
+                                          setProducts(prev => prev.map(x => x.id === p.id ? updated : x)); 
+                                          setStockEdit(prev => { const c = { ...prev }; delete c[p.id]; return c; }); 
+                                        } catch (err) { 
+                                          console.error('Set stock failed:', err);
+                                          alert('Set stock failed: ' + (err as Error).message); 
+                                        }
                                       }}>OK</button>
                                   </div>
                                 </td>
-                                <td className="px-4 py-3 whitespace-nowrap text-gray-700">{((((p as unknown as Record<string, unknown>).tags) as unknown as string[]) || []).slice(0,3).join(', ')}</td>
-                                <td className="px-4 py-3 whitespace-nowrap text-right text-gray-700 text-xs">
-                                  <div className="inline-flex gap-2">
-                                    <button onClick={() => openEdit(p)} className="px-2 py-1 rounded bg-amber-100 text-amber-800 hover:bg-amber-200">Edit</button>
-                                    <button onClick={() => openStockHistory(p.id)} className="px-2 py-1 rounded bg-blue-100 text-blue-700 hover:bg-blue-200">History</button>
-                                    <button onClick={() => handleDelete(p.id)} className="px-2 py-1 rounded bg-red-100 text-red-700 hover:bg-red-200">Del</button>
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                  <div className="flex items-center gap-2">
+                                    {p.is_bestseller && (
+                                      <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-yellow-100 text-yellow-800">
+                                        ⭐ Bestseller
+                                      </span>
+                                    )}
+                                    {p.is_new && (
+                                      <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-green-100 text-green-800">
+                                        🆕 New
+                                      </span>
+                                    )}
+                                    {!p.is_bestseller && !p.is_new && (
+                                      <span className="text-xs text-gray-500">—</span>
+                                    )}
+                                  </div>
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                  <div className="inline-flex items-center gap-2">
+                                    <button onClick={() => openEdit(p)} className="text-violet-600 hover:text-violet-900">Edit</button>
+                                    <button onClick={() => openStockHistory(p.id)} className="text-blue-600 hover:text-blue-900">History</button>
+                                    <button onClick={() => handleDelete(p.id)} className="text-red-600 hover:text-red-900">Delete</button>
                                   </div>
                                 </td>
                               </tr>
@@ -704,7 +837,7 @@ const AdminDashboard: React.FC = () => {
                               <tr key={o.id} className="hover:bg-amber-50/40 transition-colors">
                                 <td className="px-4 py-3 whitespace-nowrap font-medium text-gray-800">#{o.id}</td>
                                 <td className="px-4 py-3 whitespace-nowrap text-gray-700">{o.customer_name || o.customer_email || 'Guest'}</td>
-                                <td className="px-4 py-3 whitespace-nowrap text-gray-700">₦{String((o as unknown as Record<string, unknown>).total ?? (o as unknown as Record<string, unknown>).amount ?? '—')}</td>
+                                <td className="px-4 py-3 whitespace-nowrap text-gray-700">Rs. {String((o as unknown as Record<string, unknown>).total ?? (o as unknown as Record<string, unknown>).amount ?? '—')}</td>
                                 <td className="px-4 py-3 whitespace-nowrap">
                                   <div className="flex items-center gap-2">
                                     <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ring-1 ring-inset ring-gray-200 ${statusColor[o.status || 'pending'] || 'bg-gray-100 text-gray-700'}`}>{o.status || 'pending'}</span>
@@ -815,103 +948,61 @@ const AdminDashboard: React.FC = () => {
                       </div>
                     </div>
 
-                    <div className="overflow-auto rounded-xl ring-1 ring-gray-200 shadow-sm bg-white mb-4">
-                      <table className="min-w-full text-sm align-middle">
-                        <thead className="bg-gradient-to-b from-gray-50 to-gray-100 text-xs uppercase tracking-wide text-gray-600 sticky top-0 z-10">
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-gray-50">
                           <tr>
-                            {(categoriesList[0] ? Object.keys(categoriesList[0]) : ['id','name']).map(k => (
-                              <th key={k} className="px-4 py-3 text-left font-semibold">{k}</th>
-                            ))}
-                            <th className="px-4 py-3 text-right font-semibold">Actions</th>
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Slug</th>
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
+                            <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                           </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-100">
+                        <tbody className="bg-white divide-y divide-gray-200">
                           {categoriesList.map(c => (
-                            <tr key={String(c.id)} className="hover:bg-amber-50/40 transition-colors">
-                              {(Object.keys(c) as string[]).map(key => (
-                                <td key={key} className="px-4 py-3 whitespace-nowrap text-gray-700">{String(((c as unknown) as Record<string, unknown>)[key] ?? '')}</td>
-                              ))}
-                              <td className="px-4 py-3 whitespace-nowrap text-right text-xs">
-                                <div className="inline-flex gap-2">
-                                  <button onClick={() => setEditingCategory({ ...c })} className="px-2 py-1 rounded bg-amber-100 text-amber-800 hover:bg-amber-200">Edit</button>
-                                  <button onClick={() => handleDeleteCategory(c.id)} className="px-2 py-1 rounded bg-red-100 text-red-700 hover:bg-red-200">Del</button>
+                            <tr key={String(c.id)} className="hover:bg-gray-50 transition-colors">
+                              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                {String(c.id)}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <div className="flex items-center">
+                                  <div className="flex-shrink-0 h-8 w-8 bg-purple-100 rounded-lg flex items-center justify-center">
+                                    <span className="text-sm">🏷️</span>
+                                  </div>
+                                  <div className="ml-3">
+                                    <div className="text-sm font-medium text-gray-900">{c.name}</div>
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {c.slug || <span className="italic">—</span>}
+                              </td>
+                              <td className="px-6 py-4 text-sm text-gray-500">
+                                <div className="max-w-xs truncate">
+                                  {c.description || <span className="italic">No description</span>}
+                                </div>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                <div className="inline-flex items-center gap-3">
+                                  <button 
+                                    onClick={() => setEditingCategory({ ...c })} 
+                                    className="text-violet-600 hover:text-violet-900"
+                                  >
+                                    Edit
+                                  </button>
+                                  <button 
+                                    onClick={() => handleDeleteCategory(c.id)} 
+                                    className="text-red-600 hover:text-red-900"
+                                  >
+                                    Delete
+                                  </button>
                                 </div>
                               </td>
                             </tr>
                           ))}
                         </tbody>
                       </table>
-                    </div>
-
-                    <div className="bg-white/80 backdrop-blur rounded-xl border border-gray-100 shadow-sm p-6">
-                      <div className="flex items-center gap-3 mb-6">
-                        <div className="h-8 w-8 rounded-lg bg-purple-100 flex items-center justify-center">
-                          <span className="text-purple-600 text-sm font-bold">+</span>
-                        </div>
-                        <h3 className="text-lg font-semibold text-gray-900">
-                          {editingCategory ? 'Edit Category' : 'Create New Category'}
-                        </h3>
-                      </div>
-                      <form onSubmit={handleSaveCategory} className="space-y-5">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Category Name</label>
-                            <input
-                              value={editingCategory?.name ?? categoryName ?? ''}
-                              onChange={e => {
-                                if (editingCategory) setEditingCategory(prev => ({ ...(prev||{}), name: e.target.value }));
-                                else setCategoryName(e.target.value);
-                              }}
-                              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition"
-                              placeholder="Enter category name"
-                              required
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">ID / Slug (Optional)</label>
-                            <input
-                              value={editingCategory?.id ?? ''}
-                              onChange={e => setEditingCategory(prev => ({ ...(prev||{}), id: e.target.value }))}
-                              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition"
-                              placeholder="Auto-generated if empty"
-                            />
-                          </div>
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">Slug</label>
-                          <input
-                            value={editingCategory?.slug ?? ''}
-                            onChange={e => setEditingCategory(prev => ({ ...(prev||{}), slug: e.target.value }))}
-                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition"
-                            placeholder="URL-friendly identifier"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
-                          <textarea
-                            value={editingCategory?.description ?? ''}
-                            onChange={e => setEditingCategory(prev => ({ ...(prev||{}), description: e.target.value }))}
-                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition resize-none"
-                            placeholder="Optional description"
-                            rows={3}
-                          />
-                        </div>
-                        <div className="flex items-center justify-end gap-3 pt-2">
-                          <button
-                            type="button"
-                            onClick={() => { setEditingCategory(null); setCategoryName(''); }}
-                            className="px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition font-medium"
-                          >
-                            Cancel
-                          </button>
-                          <button
-                            type="submit"
-                            className="px-4 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition font-medium shadow-sm"
-                          >
-                            {editingCategory ? 'Update Category' : 'Create Category'}
-                          </button>
-                        </div>
-                      </form>
                     </div>
                   </div>
                 )}
@@ -981,11 +1072,12 @@ const AdminDashboard: React.FC = () => {
                 )}
               </div>
             </div>
-          </main>
-        </div>
+          </div>
+        </main>
+      </div>
 
-        {/* Order detail modal */}
-        {selectedOrder && (
+      {/* Order detail modal */}
+      {selectedOrder && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
             <div className="bg-white rounded-xl w-full max-w-3xl max-h-[90vh] overflow-hidden shadow-2xl">
               <div className="flex items-center justify-between p-6 border-b border-gray-100">
@@ -1077,7 +1169,7 @@ const AdminDashboard: React.FC = () => {
                             </div>
                           </div>
                           <div className="text-right">
-                            <div className="text-lg font-semibold text-gray-900">₦{String(row['total'] ?? row['price'] ?? '0')}</div>
+                            <div className="text-lg font-semibold text-gray-900">Rs. {String(row['total'] ?? row['price'] ?? '0')}</div>
                           </div>
                         </div>
                       );
@@ -1164,7 +1256,7 @@ const AdminDashboard: React.FC = () => {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Price (₦)</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Price (Rs.)</label>
                     <input
                       type="number"
                       value={(editingProduct?.price ?? form.price) ?? 0}
@@ -1189,7 +1281,9 @@ const AdminDashboard: React.FC = () => {
                   </div>
 
                   <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Product Image</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Product Image <span className="text-gray-500 font-normal text-xs">(Optional)</span>
+                    </label>
 
                     {/* Current Image Preview */}
                     {(editingProduct?.image_url ?? form.image_url) && (
@@ -1268,13 +1362,13 @@ const AdminDashboard: React.FC = () => {
 
                       {/* Alternative: Manual URL Input */}
                       <div className="pt-4 border-t border-gray-200">
-                        <p className="text-sm text-gray-600 mb-2">Or enter image URL manually:</p>
+                        <p className="text-sm text-gray-600 mb-2">Or enter image URL manually (optional):</p>
                         <input
                           value={(editingProduct?.image_url ?? form.image_url) ?? ''}
                           onChange={e => setEditingProduct(prev => ({ ...prev, image_url: e.target.value }))}
                           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition"
-                          placeholder="https://example.com/image.jpg"
-                          type="url"
+                          placeholder="https://example.com/image.jpg (leave empty for default placeholder)"
+                          type="text"
                         />
                       </div>
                     </div>
@@ -1423,7 +1517,93 @@ const AdminDashboard: React.FC = () => {
             </div>
           </div>
         )}
-      </div>
+
+        {/* Category Edit/Create Modal */}
+        {editingCategory !== null && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-lg w-full max-w-md shadow-xl">
+              <div className="flex items-center justify-between p-6 border-b border-gray-200">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-lg bg-purple-100 flex items-center justify-center">
+                    <span className="text-purple-600 text-lg">🏷️</span>
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-semibold text-gray-900">
+                      {editingCategory?.id ? 'Edit Category' : 'Add New Category'}
+                    </h2>
+                    <p className="text-sm text-gray-500">
+                      {editingCategory?.id ? 'Update category information' : 'Create a new product category'}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    setEditingCategory(null);
+                    setCategoryName('');
+                  }}
+                  className="h-8 w-8 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <form onSubmit={handleSaveCategory} className="p-6 space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Category Name *</label>
+                  <input
+                    value={editingCategory?.name ?? ''}
+                    onChange={e => setEditingCategory(prev => ({ ...(prev || {}), name: e.target.value }))}
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-violet-500 transition"
+                    placeholder="e.g., Nuts, Dried Fruits"
+                    required
+                    autoFocus
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Slug (Optional)</label>
+                  <input
+                    value={editingCategory?.slug ?? ''}
+                    onChange={e => setEditingCategory(prev => ({ ...(prev || {}), slug: e.target.value }))}
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-violet-500 transition"
+                    placeholder="e.g., organic-nuts"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">URL-friendly identifier (auto-generated if empty)</p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Description (Optional)</label>
+                  <textarea
+                    value={editingCategory?.description ?? ''}
+                    onChange={e => setEditingCategory(prev => ({ ...(prev || {}), description: e.target.value }))}
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-violet-500 focus:border-violet-500 transition resize-none"
+                    placeholder="Brief description of the category"
+                    rows={3}
+                  />
+                </div>
+
+                <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-200">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditingCategory(null);
+                      setCategoryName('');
+                    }}
+                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-2 text-sm font-medium text-white bg-violet-600 rounded-lg hover:bg-violet-700 transition"
+                  >
+                    {editingCategory?.id ? 'Update Category' : 'Create Category'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
     </div>
   );
 };

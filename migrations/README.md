@@ -45,6 +45,15 @@ SELECT column_name, data_type FROM information_schema.columns WHERE table_name='
 SELECT conname, pg_get_constraintdef(oid) FROM pg_constraint WHERE conrelid = 'products'::regclass;
 ```
 
+6) Run migration 006 to fix stock_movements RLS policy (if you're experiencing RLS errors)
+
+```powershell
+psql "postgresql://<DB_USER>:<DB_PASS>@<DB_HOST>:5432/<DB_NAME>" -f migrations/006_fix_stock_movements_rls.sql
+```
+
+Or in Supabase SQL Editor, copy and paste the contents of `006_fix_stock_movements_rls.sql`
+
 Notes
 - These migrations assume minimal cross-references to `categories.id`. If other tables reference the text `categories.id`, add explicit ALTER TABLE ... DROP/ADD CONSTRAINT steps for them.
 - If you prefer, run these on a staging DB first.
+- Migration 006 fixes RLS policy to allow admins to insert stock movements in the admin dashboard.

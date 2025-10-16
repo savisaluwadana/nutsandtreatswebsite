@@ -41,8 +41,8 @@ export const adaptProductToUIFormat = (product: SupabaseProduct): Partial<UIProd
     price: product.price,
   // Keep category as a friendly label (or id if lookup missing)
   category: String(resolvedCategory),
-    image: product.image_url,
-    images: [product.image_url],
+    image: product.image_url || '/images/placeholder-product.svg',
+    images: [product.image_url || '/images/placeholder-product.svg'],
     isBestseller: product.is_bestseller,
     isNew: product.is_new,
     rating: 4.5, // Default rating since it's not in the database schema

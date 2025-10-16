@@ -104,7 +104,7 @@ function App() {
     const baseKey = `${currentPage}:${navCounter}:${selectedCategory}:${selectedProduct ?? ''}:${searchQuery}`;
     switch (currentPage) {
       case 'home':
-        return <div key={baseKey}><HomePage onNavigate={navigateToPage} /></div>;
+        return <div key={baseKey}><HomePage onNavigate={navigateToPage} navCounter={navCounter} /></div>;
       case 'category':
         return <div key={baseKey}><CategoryPage category={selectedCategory} onNavigate={navigateToPage} /></div>;
       case 'product':

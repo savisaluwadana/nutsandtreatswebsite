@@ -14,15 +14,26 @@ export async function getAllCategories(): Promise<Category[]> {
   type RawCategory = Record<string, unknown>;
   let rows: RawCategory[] = [];
   try {
-    const attempt = await supabase.from('categories').select('*').order('name', { ascending: true });
-    if (attempt.error && (attempt.error as { code?: string }).code === '42703') {
-      const retry = await supabase.from('categories').select('*').order('category', { ascending: true });
-      if (retry.error) throw retry.error;
-      rows = (retry.data || []) as RawCategory[];
-    } else if (attempt.error) {
-      throw attempt.error;
+    // Fixed: removed .asc suffix from order parameter
+    const { data, error } = await supabase
+      .from('categories')
+      .select('*')
+      .order('name', { ascending: true });
+    
+    if (error) {
+      // If 'name' column doesn't exist, try 'category'
+      if ((error as { code?: string }).code === '42703') {
+        const retry = await supabase
+          .from('categories')
+          .select('*')
+          .order('category', { ascending: true });
+        if (retry.error) throw retry.error;
+        rows = (retry.data || []) as RawCategory[];
+      } else {
+        throw error;
+      }
     } else {
-      rows = (attempt.data || []) as RawCategory[];
+      rows = (data || []) as RawCategory[];
     }
   } catch (e) {
     console.error('Error fetching categories:', e);

@@ -10,9 +10,10 @@ import { useAuth } from '../context/useAuth';
 
 interface HomePageProps {
   onNavigate: (page: string, category?: string, productId?: number, query?: string) => void;
+  navCounter?: number;
 }
 
-const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
+const HomePage: React.FC<HomePageProps> = ({ onNavigate, navCounter = 0 }) => {
   const [bestsellers, setBestsellers] = useState<Product[]>([]);
   const [newArrivals, setNewArrivals] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -95,6 +96,27 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate }) => {
     window.addEventListener('app:navigate', onAppNavigate);
     return () => window.removeEventListener('app:navigate', onAppNavigate);
   }, []);
+
+  // Additional refetch when navCounter changes (ensures data loads on navigation)
+  useEffect(() => {
+    if (navCounter > 0) {
+      (async () => {
+        try {
+          setLoading(true);
+          const [bestsellerData, newArrivalsData] = await Promise.all([
+            getBestsellerProducts(),
+            getNewProducts()
+          ]);
+          setBestsellers(bestsellerData);
+          setNewArrivals(newArrivalsData);
+        } catch (err) {
+          console.warn('Navigation-triggered home fetch failed', err);
+        } finally {
+          setLoading(false);
+        }
+      })();
+    }
+  }, [navCounter]);
 
   // Function to convert Supabase products to the format expected by ProductShowcase
   const formatProducts = (products: Product[]) => {

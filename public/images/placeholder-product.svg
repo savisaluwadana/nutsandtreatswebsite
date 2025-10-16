@@ -1,0 +1,9 @@
+<svg width="400" height="400" xmlns="http://www.w3.org/2000/svg">
+  <rect width="400" height="400" fill="#f3f4f6"/>
+  <g transform="translate(100, 100)">
+    <path d="M100 0 L200 100 L100 200 L0 100 Z" fill="#d1d5db" opacity="0.5"/>
+    <circle cx="100" cy="100" r="80" fill="#e5e7eb" opacity="0.6"/>
+    <text x="100" y="110" font-family="Arial, sans-serif" font-size="16" fill="#9ca3af" text-anchor="middle">No Image</text>
+    <text x="100" y="135" font-family="Arial, sans-serif" font-size="12" fill="#9ca3af" text-anchor="middle">Available</text>
+  </g>
+</svg>
