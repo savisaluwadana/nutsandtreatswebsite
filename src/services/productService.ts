@@ -1,5 +1,6 @@
 import { supabase } from '../lib/supabase';
 import { logStockMovement } from './stockMovementService';
+import { products as mockProducts } from '../data/products';
 
 export interface Product {
   id: number;
@@ -114,34 +115,100 @@ export async function getProductById(id: number): Promise<Product | null> {
 
 // Fetch bestseller products
 export async function getBestsellerProducts(): Promise<Product[]> {
-  const { data, error } = await supabase
-    .from('products')
-    .select('*')
-    .eq('is_bestseller', true)
-    .order('created_at', { ascending: false });
-  
-  if (error) {
-    console.error('Error fetching bestseller products:', error);
-    throw error;
+  try {
+    const { data, error } = await supabase
+      .from('products')
+      .select('*')
+      .eq('is_bestseller', true)
+      .order('created_at', { ascending: false });
+    
+    if (error) {
+      console.warn('Error fetching bestseller products from Supabase, using mock data:', error);
+      // Return mock bestseller products as fallback
+      return mockProducts
+        .filter(p => p.isBestseller)
+        .map(p => ({
+          id: p.id,
+          name: p.name,
+          description: p.description,
+          price: p.price,
+          category: p.category,
+          image_url: p.image,
+          stock_quantity: p.stock || 100,
+          is_bestseller: true,
+          is_new: false,
+          created_at: p.createdAt || new Date().toISOString()
+        }));
+    }
+    
+    return data || [];
+  } catch (err) {
+    console.warn('Exception fetching bestseller products, using mock data:', err);
+    // Return mock bestseller products as fallback
+    return mockProducts
+      .filter(p => p.isBestseller)
+      .map(p => ({
+        id: p.id,
+        name: p.name,
+        description: p.description,
+        price: p.price,
+        category: p.category,
+        image_url: p.image,
+        stock_quantity: p.stock || 100,
+        is_bestseller: true,
+        is_new: false,
+        created_at: p.createdAt || new Date().toISOString()
+      }));
   }
-  
-  return data || [];
 }
 
 // Fetch new arrival products
 export async function getNewProducts(): Promise<Product[]> {
-  const { data, error } = await supabase
-    .from('products')
-    .select('*')
-    .eq('is_new', true)
-    .order('created_at', { ascending: false });
-  
-  if (error) {
-    console.error('Error fetching new products:', error);
-    throw error;
+  try {
+    const { data, error } = await supabase
+      .from('products')
+      .select('*')
+      .eq('is_new', true)
+      .order('created_at', { ascending: false });
+    
+    if (error) {
+      console.warn('Error fetching new products from Supabase, using mock data:', error);
+      // Return mock new products as fallback
+      return mockProducts
+        .filter(p => p.isNew)
+        .map(p => ({
+          id: p.id,
+          name: p.name,
+          description: p.description,
+          price: p.price,
+          category: p.category,
+          image_url: p.image,
+          stock_quantity: p.stock || 100,
+          is_bestseller: false,
+          is_new: true,
+          created_at: p.createdAt || new Date().toISOString()
+        }));
+    }
+    
+    return data || [];
+  } catch (err) {
+    console.warn('Exception fetching new products, using mock data:', err);
+    // Return mock new products as fallback
+    return mockProducts
+      .filter(p => p.isNew)
+      .map(p => ({
+        id: p.id,
+        name: p.name,
+        description: p.description,
+        price: p.price,
+        category: p.category,
+        image_url: p.image,
+        stock_quantity: p.stock || 100,
+        is_bestseller: false,
+        is_new: true,
+        created_at: p.createdAt || new Date().toISOString()
+      }));
   }
-  
-  return data || [];
 }
 
 // Create a new product
