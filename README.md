@@ -35,44 +35,6 @@ VITE_SUPABASE_ANON_KEY=your-anon-key-here
 - Order management
 - User profiles
 
-## Running the Project
-
-1. Install dependencies:
-
-```bash
-npm install
-```
-
-2. Run the development server:
-
-```bash
-npm run dev
-```
-
-3. Build for production:
-
-```bash
-npm run build
-```
-
-## Authentication
-
-The project uses Supabase Authentication to handle user sign up, sign in, and session management. Features include:
-
-- Email and password authentication
-- Session management
-- Protected routes for user account pages
-- User profiles
-
-## Seeding the database
-
-1. Ensure your Supabase project has the schema applied (use `complete_schema.sql` in the SQL editor).
-2. Put your Supabase credentials in the project `.env` file:
-
-```
-VITE_SUPABASE_URL=https://your-project-url.supabase.co
-VITE_SUPABASE_ANON_KEY=your-anon-key-here
-```
 
 3. Install dependencies and run the seeder:
 
