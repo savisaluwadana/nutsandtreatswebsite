@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { ArrowRight, Star, Truck, ShieldCheck, Clock } from 'lucide-react';
-import { getBestsellerProducts, Product } from '../services/productService';
+import { ArrowRight, Star, Truck, ShieldCheck, Clock, Heart } from 'lucide-react';
+import { getBestsellerProducts } from '../services/productService';
+import { adaptProductsToUIFormat } from '../services/productAdapter';
+import { Product } from '../data/products';
 import { useCart } from '../context/CartContext';
 import { useLikedProducts } from '../context/LikedProductsContext';
 
@@ -10,7 +12,7 @@ interface HomePageProps {
 }
 
 const HomePage: React.FC<HomePageProps> = ({ onNavigate, navCounter }) => {
-  const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
+  const [featuredProducts, setFeaturedProducts] = useState<Partial<Product>[]>([]);
   const { addToCart } = useCart();
   const { addToLiked, removeFromLiked, isLiked } = useLikedProducts();
   const [loading, setLoading] = useState(true);
@@ -20,7 +22,8 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, navCounter }) => {
       try {
         setLoading(true);
         const products = await getBestsellerProducts();
-        setFeaturedProducts(products || []);
+        const adapted = adaptProductsToUIFormat(products);
+        setFeaturedProducts(adapted || []);
       } catch (error) {
         console.error('Failed to load featured products', error);
       } finally {
@@ -30,20 +33,36 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, navCounter }) => {
     loadProducts();
   }, [navCounter]);
 
-  const handleToggleLike = (e: React.MouseEvent, product: Product) => {
+  const handleToggleLike = (e: React.MouseEvent, product: Partial<Product>) => {
     e.stopPropagation();
+    if (!product.id) return;
     if (isLiked(product.id)) {
       removeFromLiked(product.id);
     } else {
       addToLiked({
         id: product.id,
-        name: product.name,
+        name: product.name || 'Product',
         price: Number(product.price),
-        image: product.image_url || '',
+        image: product.image || '',
         category: product.category || ''
       });
     }
   };
+
+  const HeartIcon = ({ filled }: { filled: boolean }) => (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill={filled ? "currentColor" : "none"}
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="w-5 h-5"
+    >
+      <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
+    </svg>
+  );
 
   return (
     <div className="min-h-screen bg-stone-50">
@@ -131,73 +150,78 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, navCounter }) => {
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-            {featuredProducts.map(product => (
-              <div
-                key={product.id}
-                className="bg-white group cursor-pointer border border-stone-100 hover:border-amber-200 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col h-full"
-                onClick={() => onNavigate('product', undefined, product.id)}
-              >
-                <div className="relative aspect-[4/5] overflow-hidden bg-stone-100">
-                  <img
-                    src={product.image_url || 'https://via.placeholder.com/400x500?text=No+Image'}
-                    alt={product.name}
-                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                  />
-                  {product.is_new && (
-                    <span className="absolute top-4 left-4 bg-stone-900 text-white text-xs font-bold px-3 py-1 uppercase tracking-wider">New</span>
-                  )}
-                  {product.is_bestseller && (
-                    <span className="absolute top-4 left-4 bg-amber-600 text-white text-xs font-bold px-3 py-1 uppercase tracking-wider">Bestseller</span>
-                  )}
-                  <div className="absolute top-4 right-4 translate-x-12 group-hover:translate-x-0 transition-transform duration-300">
-                    <button
-                      onClick={(e) => handleToggleLike(e, product)}
-                      className={`p-2 rounded-full shadow-md bg-white hover:bg-amber-50 transition-colors ${isLiked(product.id) ? 'text-red-500' : 'text-stone-400 hover:text-red-500'
-                        }`}
-                    >
-                      <HeartIcon filled={isLiked(product.id)} />
-                    </button>
+            {featuredProducts.map(product => {
+              if (!product.id) return null;
+              const isProductLiked = isLiked(product.id);
+              return (
+                <div
+                  key={product.id}
+                  className="bg-white group cursor-pointer border border-stone-100 hover:border-amber-200 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col h-full"
+                  onClick={() => onNavigate('product', undefined, product.id)}
+                >
+                  <div className="relative aspect-[4/5] overflow-hidden bg-stone-100">
+                    <img
+                      src={product.image || 'https://via.placeholder.com/400x500?text=No+Image'}
+                      alt={product.name}
+                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                    />
+                    {product.isNew && (
+                      <span className="absolute top-4 left-4 bg-stone-900 text-white text-xs font-bold px-3 py-1 uppercase tracking-wider">New</span>
+                    )}
+                    {product.isBestseller && (
+                      <span className="absolute top-4 left-4 bg-amber-600 text-white text-xs font-bold px-3 py-1 uppercase tracking-wider">Bestseller</span>
+                    )}
+                    <div className="absolute top-4 right-4 translate-x-12 group-hover:translate-x-0 transition-transform duration-300">
+                      <button
+                        onClick={(e) => handleToggleLike(e, product)}
+                        className={`p-2 rounded-full shadow-md bg-white hover:bg-amber-50 transition-colors ${isProductLiked ? 'text-red-500' : 'text-stone-400 hover:text-red-500'
+                          }`}
+                      >
+                        <HeartIcon filled={isProductLiked} />
+                      </button>
+                    </div>
+
+                    {/* Quick Add Overlay */}
+                    <div className="absolute inset-x-0 bottom-0 p-4 translate-y-full group-hover:translate-y-0 transition-transform duration-300 flex justify-center">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          addToCart({
+                            id: product.id!,
+                            name: product.name || 'Product',
+                            price: Number(product.price),
+                            image: product.image || '',
+                            weight: product.weights?.[0]?.size || 'Standard'
+                          });
+                        }}
+                        className="w-full bg-white/95 backdrop-blur text-stone-900 py-3 font-medium hover:bg-amber-700 hover:text-white transition-colors uppercase text-sm tracking-wide shadow-lg border border-stone-200"
+                      >
+                        Add to Cart
+                      </button>
+                    </div>
                   </div>
 
-                  {/* Quick Add Overlay */}
-                  <div className="absolute inset-x-0 bottom-0 p-4 translate-y-full group-hover:translate-y-0 transition-transform duration-300 flex justify-center">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        addToCart({
-                          id: product.id,
-                          name: product.name,
-                          price: Number(product.price),
-                          image: product.image_url || '',
-                        });
-                      }}
-                      className="w-full bg-white/95 backdrop-blur text-stone-900 py-3 font-medium hover:bg-amber-700 hover:text-white transition-colors uppercase text-sm tracking-wide shadow-lg border border-stone-200"
-                    >
-                      Add to Cart
-                    </button>
-                  </div>
-                </div>
-
-                <div className="p-6 flex flex-col flex-grow">
-                  <div className="mb-2 text-xs text-amber-700 font-medium uppercase tracking-wide">Premium</div>
-                  <h3 className="font-serif text-lg font-bold text-stone-900 mb-2 group-hover:text-amber-700 transition-colors line-clamp-2">
-                    {product.name}
-                  </h3>
-                  <div className="mt-auto flex items-end justify-between">
-                    <span className="text-xl font-medium text-stone-900">
-                      Rs. {Number(product.price).toLocaleString()}
-                    </span>
-                    <div className="flex text-amber-400 text-xs">
-                      <Star className="w-4 h-4 fill-current" />
-                      <Star className="w-4 h-4 fill-current" />
-                      <Star className="w-4 h-4 fill-current" />
-                      <Star className="w-4 h-4 fill-current" />
-                      <Star className="w-4 h-4 fill-current" />
+                  <div className="p-6 flex flex-col flex-grow">
+                    <div className="mb-2 text-xs text-amber-700 font-medium uppercase tracking-wide">Premium</div>
+                    <h3 className="font-serif text-lg font-bold text-stone-900 mb-2 group-hover:text-amber-700 transition-colors line-clamp-2">
+                      {product.name}
+                    </h3>
+                    <div className="mt-auto flex items-end justify-between">
+                      <span className="text-xl font-medium text-stone-900">
+                        Rs. {Number(product.price).toLocaleString()}
+                      </span>
+                      <div className="flex text-amber-400 text-xs">
+                        <Star className="w-4 h-4 fill-current" />
+                        <Star className="w-4 h-4 fill-current" />
+                        <Star className="w-4 h-4 fill-current" />
+                        <Star className="w-4 h-4 fill-current" />
+                        <Star className="w-4 h-4 fill-current" />
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
 
@@ -247,20 +271,5 @@ const HomePage: React.FC<HomePageProps> = ({ onNavigate, navCounter }) => {
     </div>
   );
 };
-
-const HeartIcon = ({ filled }: { filled: boolean }) => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    viewBox="0 0 24 24"
-    fill={filled ? "currentColor" : "none"}
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    className="w-5 h-5"
-  >
-    <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
-  </svg>
-);
 
 export default HomePage;
