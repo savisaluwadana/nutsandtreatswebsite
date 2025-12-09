@@ -1,164 +1,103 @@
 import React from 'react';
-import { MessageCircle, Facebook, Instagram, Twitter, Mail, Phone, MapPin } from 'lucide-react';
+import { MessageCircle, Facebook, Instagram, Twitter, Mail, Phone, MapPin, ArrowRight } from 'lucide-react';
 
 interface FooterProps {
-  onNavigate: (page: 'home' | 'category' | 'product' | 'cart' | 'checkout' | 'hampers' | 'corporate' | 'about' | 'contact' | 'blog' | 'liked') => void;
+  onNavigate: (page: 'home' | 'category' | 'product' | 'products' | 'cart' | 'checkout' | 'hampers' | 'corporate' | 'about' | 'contact' | 'blog' | 'liked') => void;
 }
 
 const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
   return (
-    <footer className="bg-gray-50 border-t border-gray-200">
-      <div className="container mx-auto px-4 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-          {/* Company Info */}
-          <div>
-            <h3 className="text-xl font-bold text-amber-600 mb-4">Nuts 'N Treats</h3>
-            <p className="text-gray-600 mb-4">
-              Premium quality nuts, dry fruits, and healthy snacks delivered fresh to your doorstep.
+    <footer className="bg-stone-900 text-stone-200 font-sans">
+      <div className="container mx-auto px-4 pt-20 pb-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 lg:gap-8 mb-16">
+          {/* Brand Info */}
+          <div className="space-y-6">
+            <h3 className="text-3xl font-serif font-bold text-amber-500">Nuts 'N Treats</h3>
+            <p className="text-stone-400 leading-relaxed text-sm max-w-sm">
+              Premium quality nuts, dry fruits, and healthy snacks sourced from the finest origins and delivered fresh to your doorstep.
             </p>
-            <div className="space-y-2">
-              <div className="flex items-center text-gray-600">
-                <Phone className="h-4 w-4 mr-2" />
-                <span>+94 11 234 5678</span>
-              </div>
-              <div className="flex items-center text-gray-600">
-                <Mail className="h-4 w-4 mr-2" />
-                <span>info@nutsntreatslk.com</span>
-              </div>
-              <div className="flex items-center text-gray-600">
-                <MapPin className="h-4 w-4 mr-2" />
-                <span>Colombo, Sri Lanka</span>
-              </div>
+            <div className="flex space-x-4">
+              <SocialButton icon={<Facebook className="w-5 h-5" />} />
+              <SocialButton icon={<Instagram className="w-5 h-5" />} />
+              <SocialButton icon={<Twitter className="w-5 h-5" />} />
             </div>
           </div>
 
           {/* Quick Links */}
-          <div>
-            <h4 className="font-semibold text-gray-900 mb-4">Quick Links</h4>
-            <ul className="space-y-2">
-              <li>
-                <button 
-                  onClick={() => onNavigate('home')}
-                  className="text-gray-600 hover:text-amber-600 transition-colors"
-                >
-                  Home
-                </button>
-              </li>
-              <li>
-                <button className="text-gray-600 hover:text-amber-600 transition-colors">
-                  About Us
-                </button>
-              </li>
-              <li>
-                <button className="text-gray-600 hover:text-amber-600 transition-colors">
-                  Quality & Process
-                </button>
-              </li>
-              <li>
-                <button 
-                  onClick={() => onNavigate('blog')}
-                  className="text-gray-600 hover:text-amber-600 transition-colors"
-                >
-                  Blog
-                </button>
-              </li>
-              <li>
-                <button 
-                  onClick={() => onNavigate('liked')}
-                  className="text-gray-600 hover:text-amber-600 transition-colors"
-                >
-                  My Likes
-                </button>
-              </li>
-              <li>
-                <button className="text-gray-600 hover:text-amber-600 transition-colors">
-                  Contact
-                </button>
-              </li>
+          <div className="lg:pl-8">
+            <h4 className="text-white font-serif text-lg font-medium mb-6">Explore</h4>
+            <ul className="space-y-4 text-sm text-stone-400">
+              <li><button onClick={() => onNavigate('products')} className="hover:text-amber-500 transition-colors">Shop All</button></li>
+              <li><button onClick={() => onNavigate('hampers')} className="hover:text-amber-500 transition-colors">Gift Hampers</button></li>
+              <li><button onClick={() => onNavigate('corporate')} className="hover:text-amber-500 transition-colors">Corporate Orders</button></li>
+              <li><button onClick={() => onNavigate('blog')} className="hover:text-amber-500 transition-colors">Our Blog</button></li>
             </ul>
           </div>
 
-          {/* Customer Service */}
+          {/* Customer Care */}
           <div>
-            <h4 className="font-semibold text-gray-900 mb-4">Customer Service</h4>
-            <ul className="space-y-2">
-              <li>
-                <button className="text-gray-600 hover:text-amber-600 transition-colors">
-                  FAQs
-                </button>
-              </li>
-              <li>
-                <button className="text-gray-600 hover:text-amber-600 transition-colors">
-                  Shipping & Returns
-                </button>
-              </li>
-              <li>
-                <button className="text-gray-600 hover:text-amber-600 transition-colors">
-                  Privacy Policy
-                </button>
-              </li>
-              <li>
-                <button className="text-gray-600 hover:text-amber-600 transition-colors">
-                  Terms & Conditions
-                </button>
-              </li>
-              <li>
-                <button className="text-gray-600 hover:text-amber-600 transition-colors flex items-center">
-                  <MessageCircle className="h-4 w-4 mr-1" />
-                  WhatsApp Support
-                </button>
-              </li>
+            <h4 className="text-white font-serif text-lg font-medium mb-6">Support</h4>
+            <ul className="space-y-4 text-sm text-stone-400">
+              <li><button onClick={() => onNavigate('contact')} className="hover:text-amber-500 transition-colors">Contact Us</button></li>
+              <li><button className="hover:text-amber-500 transition-colors">Shipping & Returns</button></li>
+              <li><button className="hover:text-amber-500 transition-colors">Privacy Policy</button></li>
+              <li><button className="hover:text-amber-500 transition-colors">Terms of Service</button></li>
+              <li><button className="hover:text-amber-500 transition-colors flex items-center gap-2"><MessageCircle className="w-4 h-4" /> WhatsApp Support</button></li>
             </ul>
           </div>
 
-          {/* Social Media & Newsletter */}
-          <div>
-            <h4 className="font-semibold text-gray-900 mb-4">Stay Connected</h4>
-            <div className="flex space-x-4 mb-6">
-              <button className="text-gray-400 hover:text-blue-600 transition-colors">
-                <Facebook className="h-6 w-6" />
-              </button>
-              <button className="text-gray-400 hover:text-pink-600 transition-colors">
-                <Instagram className="h-6 w-6" />
-              </button>
-              <button className="text-gray-400 hover:text-blue-400 transition-colors">
-                <Twitter className="h-6 w-6" />
-              </button>
+          {/* Contact & Newsletter */}
+          <div className="space-y-6">
+            <h4 className="text-white font-serif text-lg font-medium mb-4">Stay in Touch</h4>
+            <div className="space-y-4 text-sm text-stone-400">
+              <div className="flex items-start gap-3">
+                <MapPin className="w-5 h-5 text-amber-500 mt-1 flex-shrink-0" />
+                <span>123 Premium Lane,<br />Colombo 03, Sri Lanka</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <Phone className="w-5 h-5 text-amber-500 flex-shrink-0" />
+                <span>+94 11 234 5678</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <Mail className="w-5 h-5 text-amber-500 flex-shrink-0" />
+                <span>hello@nutsntreats.lk</span>
+              </div>
             </div>
-            <div>
-              <h5 className="font-medium text-gray-900 mb-2">Newsletter</h5>
-              <p className="text-sm text-gray-600 mb-3">
-                Get updates on new products and special offers.
-              </p>
-              <div className="flex">
+
+            <div className="pt-4">
+              <label className="block text-xs uppercase tracking-wider text-stone-500 mb-2">Subscribe to our newsletter</label>
+              <div className="flex border-b border-stone-700 pb-2 focus-within:border-amber-500 transition-colors">
                 <input
                   type="email"
-                  placeholder="Your email"
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-l-lg focus:outline-none focus:ring-1 focus:ring-amber-500 text-sm"
+                  placeholder="Your email address"
+                  className="bg-transparent border-none text-stone-200 placeholder-stone-600 focus:outline-none flex-grow text-sm"
                 />
-                <button className="bg-amber-600 text-white px-4 py-2 rounded-r-lg hover:bg-amber-700 transition-colors text-sm">
-                  Subscribe
+                <button className="text-amber-500 hover:text-amber-400">
+                  <ArrowRight className="w-5 h-5" />
                 </button>
               </div>
             </div>
           </div>
         </div>
 
-        <div className="border-t border-gray-300 mt-8 pt-6">
-          <div className="flex flex-col md:flex-row justify-between items-center">
-            <p className="text-gray-600 text-sm mb-4 md:mb-0">
-              © 2025 Nuts 'N Treats. All rights reserved.
-            </p>
-            <div className="flex items-center space-x-4 text-sm text-gray-600">
-              <span>🔒 Secure Checkout</span>
-              <span>🚚 Fast Delivery</span>
-              <span>↩️ Easy Returns</span>
-            </div>
+        {/* Branding Footer */}
+        <div className="border-t border-stone-800 pt-8 flex flex-col md:flex-row justify-between items-center text-xs text-stone-500">
+          <p>© 2025 Nuts 'N Treats. All rights reserved.</p>
+          <div className="flex gap-6 mt-4 md:mt-0">
+            <span>Secure Payment</span>
+            <span>Fast Delivery</span>
+            <span>Authentic Products</span>
           </div>
         </div>
       </div>
     </footer>
   );
 };
+
+const SocialButton = ({ icon }: { icon: React.ReactNode }) => (
+  <button className="w-10 h-10 rounded-full bg-stone-800 text-stone-400 flex items-center justify-center hover:bg-amber-700 hover:text-white transition-all duration-300">
+    {icon}
+  </button>
+);
 
 export default Footer;

@@ -1,10 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { Search, Heart, ShoppingCart, Menu, X, User, ShieldCheck } from 'lucide-react';
+import { Search, Heart, ShoppingCart, Menu, X, User, ShieldCheck, ChevronDown } from 'lucide-react';
 import { useAuth } from '../context/useAuth';
 import { useCart } from '../context/CartContext';
 import { useLikedProducts } from '../context/LikedProductsContext';
 import { getAllCategories, Category } from '../services/categoryService';
-// ...existing code...
 
 interface HeaderProps {
   onNavigate: (page: string, category?: string, productId?: number, query?: string) => void;
@@ -18,6 +17,7 @@ const Header: React.FC<HeaderProps> = ({ onNavigate }) => {
   const { user, isAdmin } = useAuth();
   const { likedProducts } = useLikedProducts();
   const [categoriesLocal, setCategoriesLocal] = useState<Category[]>([]);
+  const [isScrolled, setIsScrolled] = useState(false);
 
   const loadCategories = async () => {
     try {
@@ -32,46 +32,65 @@ const Header: React.FC<HeaderProps> = ({ onNavigate }) => {
     loadCategories();
     const handler = () => loadCategories();
     window.addEventListener('app:categories:update', handler);
-    return () => window.removeEventListener('app:categories:update', handler);
+
+    const scrollHandler = () => {
+      setIsScrolled(window.scrollY > 20);
+    };
+    window.addEventListener('scroll', scrollHandler);
+
+    return () => {
+      window.removeEventListener('app:categories:update', handler);
+      window.removeEventListener('scroll', scrollHandler);
+    };
   }, []);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    // navigate to products page with query
     onNavigate('products', undefined, undefined, searchQuery);
   };
 
   return (
-    <header className="bg-white shadow-sm border-b border-gray-100 sticky top-0 z-50">
+    <header className={`sticky top-0 z-50 transition-all duration-300 ${isScrolled ? 'bg-white/95 backdrop-blur-sm shadow-md py-2' : 'bg-white py-4 border-b border-stone-100'}`}>
       <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between h-16">
+        <div className="flex items-center justify-between">
           {/* Logo */}
-          <div 
-            className="flex-shrink-0 cursor-pointer"
+          <div
+            className="flex-shrink-0 cursor-pointer flex items-center gap-2"
             onClick={() => onNavigate('home')}
           >
-            <h1 className="text-2xl font-bold text-amber-600">Nuts 'N Treats</h1>
+            <div className="w-10 h-10 bg-amber-700 rounded-full flex items-center justify-center text-white font-serif text-xl font-bold">N</div>
+            <h1 className="text-2xl md:text-3xl font-bold font-serif text-stone-900 tracking-tight">
+              Nuts <span className="text-amber-700">'N</span> Treats
+            </h1>
           </div>
 
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center space-x-8">
-            <div 
+          <nav className="hidden lg:flex items-center space-x-8">
+            <div
               className="relative group"
               onMouseEnter={() => setIsShopDropdownOpen(true)}
               onMouseLeave={() => setIsShopDropdownOpen(false)}
             >
-              <button className="text-gray-700 hover:text-amber-600 font-medium">
-                Shop
+              <button
+                className="flex items-center gap-1 text-stone-700 hover:text-amber-700 font-medium transition-colors uppercase tracking-wide text-xs lg:text-sm"
+                onClick={() => onNavigate('products')}
+              >
+                Shop <ChevronDown className="w-4 h-4" />
               </button>
               {isShopDropdownOpen && (
-                <div className="absolute top-full left-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 py-4">
-                  <div className="px-4 py-2">
-                    <h3 className="font-semibold text-gray-900 mb-2">Categories</h3>
+                <div className="absolute top-full left-0 mt-2 w-64 bg-white rounded-none shadow-xl border-t-2 border-amber-700 py-2 animate-in fade-in slide-in-from-top-2 duration-200">
+                  <div className="px-2">
+                    <button
+                      onClick={() => onNavigate('products')}
+                      className="block w-full text-left px-4 py-3 text-stone-600 hover:text-amber-800 hover:bg-stone-50 transition-colors font-medium border-b border-stone-100"
+                    >
+                      All Products
+                    </button>
                     {categoriesLocal.map(category => (
                       <button
                         key={String(category.id)}
                         onClick={() => onNavigate('category', String(category.id))}
-                        className="block w-full text-left px-2 py-2 text-gray-600 hover:text-amber-600 hover:bg-amber-50 rounded"
+                        className="block w-full text-left px-4 py-3 text-stone-500 hover:text-amber-700 hover:bg-stone-50 transition-colors text-sm"
                       >
                         {category.name}
                       </button>
@@ -80,102 +99,88 @@ const Header: React.FC<HeaderProps> = ({ onNavigate }) => {
                 </div>
               )}
             </div>
-            <button 
-              onClick={() => onNavigate('hampers')}
-              className="text-gray-700 hover:text-amber-600 font-medium"
-            >
-              Hampers
-            </button>
-            <button 
-              onClick={() => onNavigate('corporate')}
-              className="text-gray-700 hover:text-amber-600 font-medium"
-            >
-              Corporate/Bulk
-            </button>
-            <button 
-              onClick={() => onNavigate('blog')}
-              className="text-gray-700 hover:text-amber-600 font-medium"
-            >
-              Blog
-            </button>
-            <button 
-              onClick={() => onNavigate('about')}
-              className="text-gray-700 hover:text-amber-600 font-medium"
-            >
-              About
-            </button>
-            <button 
-              onClick={() => onNavigate('contact')}
-              className="text-gray-700 hover:text-amber-600 font-medium"
-            >
-              Contact
-            </button>
+            {['Hampers', 'Corporate', 'Blog', 'About', 'Contact'].map((item) => (
+              <button
+                key={item}
+                onClick={() => onNavigate(item.toLowerCase() === 'corporate' ? 'corporate' : item.toLowerCase())}
+                className="text-stone-700 hover:text-amber-700 font-medium transition-colors uppercase tracking-wide text-xs lg:text-sm"
+              >
+                {item}
+              </button>
+            ))}
           </nav>
 
-          {/* Search Bar */}
-          <div className="hidden md:flex flex-1 max-w-lg mx-8">
-            <form onSubmit={handleSearch} className="w-full relative">
+          {/* Search Bar - Desktop */}
+          <div className="hidden md:flex flex-1 max-w-xs mx-6">
+            <form onSubmit={handleSearch} className="w-full relative group">
               <input
                 type="text"
-                placeholder="Search for products..."
+                placeholder="Search..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full px-4 py-2 pl-4 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                className="w-full bg-stone-50 border-b border-stone-300 focus:border-amber-700 px-4 py-2 pl-4 pr-10 focus:outline-none transition-colors text-sm"
               />
               <button
                 type="submit"
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-amber-600"
+                className="absolute right-2 top-1/2 transform -translate-y-1/2 text-stone-400 group-focus-within:text-amber-700 transition-colors"
               >
-                <Search className="h-5 w-5" />
+                <Search className="h-4 w-4" />
               </button>
             </form>
           </div>
 
           {/* Action Icons */}
-          <div className="flex items-center space-x-4">
-            <button 
+          <div className="flex items-center space-x-5">
+            <button
               onClick={() => onNavigate('liked')}
-              className="relative text-gray-600 hover:text-amber-600 transition-colors"
+              className="relative text-stone-600 hover:text-amber-700 transition-colors group"
+              title="Liked Products"
             >
-              <Heart className="h-6 w-6" />
+              <Heart className="h-5 w-5 group-hover:scale-110 transition-transform" />
               {likedProducts.length > 0 && (
-                <span className="absolute -top-2 -right-2 bg-amber-600 text-white rounded-full text-xs w-5 h-5 flex items-center justify-center">
+                <span className="absolute -top-2 -right-2 bg-amber-700 text-white rounded-full text-[10px] w-4 h-4 flex items-center justify-center">
                   {likedProducts.length}
                 </span>
               )}
             </button>
-            {/* Admin dashboard link - visible only for admins */}
+
+            {/* Admin dashboard link */}
             {user && isAdmin && (
-              <button onClick={() => onNavigate('dashboard')} className="text-gray-700 hover:text-amber-600 font-medium flex items-center gap-2">
+              <button
+                onClick={() => onNavigate('dashboard')}
+                className="text-stone-600 hover:text-amber-700 transition-colors"
+                title="Admin Dashboard"
+              >
                 <ShieldCheck className="h-5 w-5" />
-                <span className="hidden md:inline">Dashboard</span>
               </button>
             )}
 
-            {/* Admin indicator + User / Login icon */}
-            <div className="flex items-center gap-3">
-              <div className={`px-2 py-1 rounded-full text-xs font-semibold ${isAdmin ? 'bg-amber-600 text-white' : 'bg-gray-200 text-gray-700'}`} title={isAdmin ? 'You are an admin' : 'Not an admin'}>
-                {isAdmin ? 'Admin' : 'User'}
-              </div>
-              <button onClick={() => onNavigate(user ? 'account' : 'account')} className="text-gray-600 hover:text-amber-600 transition-colors">
-                <User className="h-6 w-6" />
-              </button>
-            </div>
-            <button 
-              onClick={() => onNavigate('cart')}
-              className="relative text-gray-600 hover:text-amber-600 transition-colors"
+            {/* Account */}
+            <button
+              onClick={() => onNavigate('account')}
+              className="text-stone-600 hover:text-amber-700 transition-colors"
+              title={user ? 'Account' : 'Login'}
             >
-              <ShoppingCart className="h-6 w-6" />
+              <User className="h-5 w-5" />
+            </button>
+
+            {/* Cart */}
+            <button
+              onClick={() => onNavigate('cart')}
+              className="relative text-stone-600 hover:text-amber-700 transition-colors group"
+              title="Cart"
+            >
+              <ShoppingCart className="h-5 w-5 group-hover:scale-110 transition-transform" />
               {getTotalItems() > 0 && (
-                <span className="absolute -top-2 -right-2 bg-amber-600 text-white rounded-full text-xs w-5 h-5 flex items-center justify-center">
+                <span className="absolute -top-2 -right-2 bg-amber-700 text-white rounded-full text-[10px] w-4 h-4 flex items-center justify-center">
                   {getTotalItems()}
                 </span>
               )}
             </button>
-            
+
             {/* Mobile menu button */}
-            <button 
-              className="md:hidden text-gray-600 hover:text-amber-600"
+            <button
+              className="lg:hidden text-stone-800 hover:text-amber-700"
               onClick={() => setIsMenuOpen(!isMenuOpen)}
             >
               {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
@@ -183,107 +188,56 @@ const Header: React.FC<HeaderProps> = ({ onNavigate }) => {
           </div>
         </div>
 
-        {/* Mobile Search */}
-        <div className="md:hidden pb-4">
-          <form onSubmit={handleSearch} className="relative">
-            <input
-              type="text"
-              placeholder="Search for products..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full px-4 py-2 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
-            />
-            <button
-              type="submit"
-              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400"
-            >
-              <Search className="h-5 w-5" />
-            </button>
-          </form>
-        </div>
-
         {/* Mobile Menu */}
         {isMenuOpen && (
-          <div className="md:hidden border-t border-gray-200 py-4">
-            <div className="space-y-4">
-              <div>
-                <button 
-                  onClick={() => setIsShopDropdownOpen(!isShopDropdownOpen)}
-                  className="block w-full text-left text-gray-700 hover:text-amber-600 font-medium py-2"
+          <div className="lg:hidden absolute top-full left-0 w-full bg-white border-b border-stone-200 shadow-lg py-4 px-4 animate-in slide-in-from-top-5 duration-200">
+            <form onSubmit={handleSearch} className="mb-6 relative">
+              <input
+                type="text"
+                placeholder="Search products..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full bg-stone-50 border border-stone-200 rounded px-4 py-3 pr-10 focus:outline-none focus:border-amber-700"
+              />
+              <button type="submit" className="absolute right-3 top-1/2 transform -translate-y-1/2 text-stone-400">
+                <Search className="h-5 w-5" />
+              </button>
+            </form>
+
+            <div className="space-y-4 font-medium text-stone-600">
+              <button
+                onClick={() => {
+                  onNavigate('products');
+                  setIsMenuOpen(false);
+                }}
+                className="block w-full text-left py-2 hover:text-amber-700 border-b border-stone-100"
+              >
+                All Products
+              </button>
+              {categoriesLocal.map(category => (
+                <button
+                  key={String(category.id)}
+                  onClick={() => {
+                    onNavigate('category', String(category.id));
+                    setIsMenuOpen(false);
+                  }}
+                  className="block w-full text-left py-2 hover:text-amber-700 border-b border-stone-100 ml-4 text-sm"
                 >
-                  Shop
+                  {category.name}
                 </button>
-                {isShopDropdownOpen && (
-                  <div className="ml-4 mt-2 space-y-2">
-                    {categoriesLocal.map(category => (
-                      <button
-                        key={String(category.id)}
-                        onClick={() => {
-                          onNavigate('category', String(category.id));
-                          setIsMenuOpen(false);
-                        }}
-                        className="block text-gray-600 hover:text-amber-600 py-1"
-                      >
-                        {category.name}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-              <button 
-                onClick={() => {
-                  onNavigate('hampers');
-                  setIsMenuOpen(false);
-                }}
-                className="block text-gray-700 hover:text-amber-600 font-medium py-2"
-              >
-                Hampers
-              </button>
-              <button 
-                onClick={() => {
-                  onNavigate('corporate');
-                  setIsMenuOpen(false);
-                }}
-                className="block text-gray-700 hover:text-amber-600 font-medium py-2"
-              >
-                Corporate/Bulk
-              </button>
-              <button 
-                onClick={() => {
-                  onNavigate('blog');
-                  setIsMenuOpen(false);
-                }}
-                className="block text-gray-700 hover:text-amber-600 font-medium py-2"
-              >
-                Blog
-              </button>
-              <button 
-                onClick={() => {
-                  onNavigate('liked');
-                  setIsMenuOpen(false);
-                }}
-                className="block text-gray-700 hover:text-amber-600 font-medium py-2"
-              >
-                My Likes
-              </button>
-              <button 
-                onClick={() => {
-                  onNavigate('about');
-                  setIsMenuOpen(false);
-                }}
-                className="block text-gray-700 hover:text-amber-600 font-medium py-2"
-              >
-                About
-              </button>
-              <button 
-                onClick={() => {
-                  onNavigate('contact');
-                  setIsMenuOpen(false);
-                }}
-                className="block text-gray-700 hover:text-amber-600 font-medium py-2"
-              >
-                Contact
-              </button>
+              ))}
+              {['Hampers', 'Corporate', 'Blog', 'Liked', 'About', 'Contact'].map((item) => (
+                <button
+                  key={item}
+                  onClick={() => {
+                    onNavigate(item.toLowerCase() === 'liked' ? 'liked' : item.toLowerCase() === 'corporate' ? 'corporate' : item.toLowerCase());
+                    setIsMenuOpen(false);
+                  }}
+                  className="block w-full text-left py-2 hover:text-amber-700 uppercase tracking-wide text-sm"
+                >
+                  {item}
+                </button>
+              ))}
             </div>
           </div>
         )}

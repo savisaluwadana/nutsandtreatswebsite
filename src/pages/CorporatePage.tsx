@@ -11,7 +11,6 @@ const CorporatePage: React.FC<CorporatePageProps> = ({ onNavigate }) => {
     contactName: '',
     email: '',
     phone: '',
-    productType: '',
     quantity: '',
     budget: '',
     deliveryDate: '',
@@ -27,14 +26,36 @@ const CorporatePage: React.FC<CorporatePageProps> = ({ onNavigate }) => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Corporate enquiry submitted:', formData);
-    alert('Thank you for your enquiry! We will contact you within 24 hours.');
+
+    // Build the WhatsApp message body (URI encoded lines)
+    const lines = [
+      '*Corporate Bulk Order Enquiry*',
+      `Company: ${formData.companyName || '-'}`,
+      `Contact Person: ${formData.contactName || '-'}`,
+      `Email: ${formData.email || '-'}`,
+      `Phone: ${formData.phone || '-'}`,
+      `Estimated Quantity: ${formData.quantity || '-'}`,
+      `Budget Range: ${formData.budget || '-'}`,
+      `Required Delivery Date: ${formData.deliveryDate || '-'}`,
+      `Additional Requirements: ${formData.message || '-'}`,
+    ];
+
+    // add a blank line between header and details for readability
+    const message = encodeURIComponent([lines[0], '', ...lines.slice(1)].join('\n'));
+
+    // Replace with your business WhatsApp number in international format (no +, no leading zeros). Example: Sri Lanka: 94712345678
+    const phoneNumber = '94712345678';
+    const waUrl = `https://wa.me/${phoneNumber}?text=${message}`;
+
+    // Open WhatsApp in a new tab/window
+    window.open(waUrl, '_blank');
+
+    // Reset form
     setFormData({
       companyName: '',
       contactName: '',
       email: '',
       phone: '',
-      productType: '',
       quantity: '',
       budget: '',
       deliveryDate: '',
@@ -330,25 +351,6 @@ const CorporatePage: React.FC<CorporatePageProps> = ({ onNavigate }) => {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Product Type
-                      </label>
-                      <select
-                        name="productType"
-                        value={formData.productType}
-                        onChange={handleInputChange}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
-                      >
-                        <option value="">Select product type</option>
-                        <option value="nuts">Nuts</option>
-                        <option value="dry-fruits">Dry Fruits</option>
-                        <option value="seeds">Seeds</option>
-                        <option value="herbs">Herbs & Spices</option>
-                        <option value="mixed">Mixed Assortment</option>
-                        <option value="hampers">Gift Hampers</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
                         Estimated Quantity
                       </label>
                       <input
@@ -359,6 +361,24 @@ const CorporatePage: React.FC<CorporatePageProps> = ({ onNavigate }) => {
                         placeholder="e.g., 100 kg, 500 units"
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
                       />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Budget Range
+                      </label>
+                      <select
+                        name="budget"
+                        value={formData.budget}
+                        onChange={handleInputChange}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
+                      >
+                        <option value="">Select budget range</option>
+                        <option value="under-50k">Under Rs. 50,000</option>
+                        <option value="50k-100k">Rs. 50,000 - 100,000</option>
+                        <option value="100k-500k">Rs. 100,000 - 500,000</option>
+                        <option value="500k-1m">Rs. 500,000 - 1,000,000</option>
+                        <option value="over-1m">Over Rs. 1,000,000</option>
+                      </select>
                     </div>
                   </div>
 
