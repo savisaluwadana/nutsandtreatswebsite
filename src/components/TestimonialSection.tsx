@@ -27,14 +27,18 @@ const TestimonialSection: React.FC = () => {
   ];
 
   return (
-    <section className="py-16 bg-gray-50">
-      <div className="container mx-auto px-4">
-        <div className="text-center mb-10">
-          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">
+    <section className="py-20 bg-gradient-to-b from-gray-50 to-white relative overflow-hidden">
+      {/* Decorative background */}
+      <div className="absolute top-20 left-20 w-64 h-64 bg-amber-200/20 rounded-full blur-3xl"></div>
+      <div className="absolute bottom-20 right-20 w-80 h-80 bg-orange-200/20 rounded-full blur-3xl"></div>
+      
+      <div className="container mx-auto px-4 relative z-10">
+        <div className="text-center mb-16">
+          <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
             What Our Customers Say
           </h2>
-          <p className="text-base text-gray-600">
-            Join thousands of satisfied customers across Sri Lanka
+          <p className="text-lg md:text-xl text-gray-600 max-w-2xl mx-auto">
+            Join thousands of satisfied customers across Sri Lanka enjoying premium quality products
           </p>
         </div>
 
@@ -42,59 +46,85 @@ const TestimonialSection: React.FC = () => {
           {testimonials.map((testimonial, index) => (
             <div
               key={index}
-              className="bg-white rounded-xl p-6 shadow-sm hover:shadow-lg transition-shadow duration-300 relative overflow-hidden"
+              className="group bg-white rounded-2xl p-8 shadow-lg hover:shadow-2xl transition-all duration-500 relative overflow-hidden border border-gray-100 hover:border-amber-200 transform hover:-translate-y-2"
+              style={{ animationDelay: `${index * 150}ms` }}
             >
-              <div className="absolute inset-0 bg-gradient-to-b from-transparent to-amber-50 opacity-60 pointer-events-none" />
-              <Quote className="absolute top-4 right-4 h-8 w-8 text-amber-200" />
+              {/* Gradient overlay */}
+              <div className="absolute inset-0 bg-gradient-to-br from-amber-50/50 via-transparent to-orange-50/50 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
               
-              <div className="flex items-center mb-4 relative z-10">
-                <img
-                  src={testimonial.image}
-                  alt={testimonial.name}
-                  className="w-14 h-14 rounded-full object-cover mr-4 border-2 border-white shadow"
-                />
-                <div>
-                  <h4 className="font-semibold text-gray-900">
+              {/* Quote icon with animation */}
+              <div className="absolute -top-4 -right-4 w-24 h-24 bg-gradient-to-br from-amber-100 to-orange-100 rounded-full opacity-20 group-hover:scale-110 transition-transform duration-500"></div>
+              <Quote className="absolute top-6 right-6 h-12 w-12 text-amber-300 group-hover:text-amber-400 transition-colors duration-300" />
+              
+              {/* User info */}
+              <div className="flex items-center mb-6 relative z-10">
+                <div className="relative">
+                  <img
+                    src={testimonial.image}
+                    alt={testimonial.name}
+                    className="w-16 h-16 rounded-full object-cover border-4 border-white shadow-lg group-hover:scale-110 transition-transform duration-300"
+                  />
+                  <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-500 rounded-full border-2 border-white"></div>
+                </div>
+                <div className="ml-4">
+                  <h4 className="font-bold text-lg text-gray-900 group-hover:text-amber-600 transition-colors">
                     {testimonial.name}
                   </h4>
-                  <p className="text-sm text-gray-600">
-                    {testimonial.location}
+                  <p className="text-sm text-gray-500">
+                    📍 {testimonial.location}
                   </p>
                 </div>
               </div>
 
+              {/* Star rating */}
               <div className="flex items-center mb-4 relative z-10">
                 {[...Array(testimonial.rating)].map((_, i) => (
                   <Star
                     key={i}
-                    className="h-4 w-4 text-yellow-400 fill-current"
+                    className="h-5 w-5 text-yellow-400 fill-current"
                   />
                 ))}
               </div>
 
-              <p className="text-gray-700 italic relative z-10">
+              {/* Testimonial text */}
+              <p className="text-gray-700 leading-relaxed relative z-10 text-lg">
                 "{testimonial.text}"
               </p>
             </div>
           ))}
         </div>
 
-        <div className="mt-12 text-center">
-          <div className="inline-flex items-center space-x-4 bg-white rounded-full px-6 py-3 shadow-md">
-            <div className="flex items-center">
-              <span className="text-2xl font-bold text-amber-600">4.8</span>
-              <div className="flex ml-2">
-                {[...Array(5)].map((_, i) => (
-                  <Star
-                    key={i}
-                    className="h-4 w-4 text-yellow-400 fill-current"
-                  />
-                ))}
+        {/* Rating badge with modern design */}
+        <div className="mt-16 text-center">
+          <div className="inline-block relative">
+            <div className="absolute inset-0 bg-gradient-to-r from-amber-400 to-orange-400 rounded-2xl blur-xl opacity-30"></div>
+            <div className="relative bg-white rounded-2xl px-10 py-6 shadow-2xl border border-amber-200">
+              <div className="flex flex-col sm:flex-row items-center gap-6">
+                <div className="flex items-center gap-4">
+                  <div className="text-5xl font-bold bg-gradient-to-r from-amber-600 to-orange-500 bg-clip-text text-transparent">
+                    4.8
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <div className="flex">
+                      {[...Array(5)].map((_, i) => (
+                        <Star
+                          key={i}
+                          className="h-5 w-5 text-yellow-400 fill-current"
+                        />
+                      ))}
+                    </div>
+                    <span className="text-sm text-gray-600 font-semibold">
+                      Based on 500+ Reviews
+                    </span>
+                  </div>
+                </div>
+                <div className="h-12 w-px bg-gray-200 hidden sm:block"></div>
+                <div className="text-center sm:text-left">
+                  <div className="text-2xl font-bold text-gray-900">10,000+</div>
+                  <div className="text-sm text-gray-600">Verified Purchases</div>
+                </div>
               </div>
             </div>
-            <span className="text-gray-600">
-              Based on 500+ Google Reviews
-            </span>
           </div>
         </div>
       </div>
