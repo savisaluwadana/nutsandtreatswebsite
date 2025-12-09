@@ -1,12 +1,12 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { ChevronDown, Filter } from 'lucide-react';
+import { ChevronDown, Filter, X } from 'lucide-react';
 import { Product } from '../data/products';
 import ProductCard from '../components/ProductCard';
 import { getProductsByCategory, getAllProducts } from '../services/productService';
 import { adaptProductsToUIFormat } from '../services/productAdapter';
 import { getAllCategories } from '../services/categoryService';
 import { useCart } from '../context/CartContext';
-import { useAuth } from '../context/useAuth';
+
 
 interface CategoryPageProps {
   category: string;
@@ -26,13 +26,12 @@ const CategoryPage: React.FC<CategoryPageProps> = ({ category, onNavigate }) => 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [categoryProducts, setCategoryProducts] = useState<Partial<Product>[]>([]);
-    const { session, loading: authLoading } = useAuth();
+
 
   const { addToHamper } = useCart();
 
   const [categoryInfo, setCategoryInfo] = useState<{ name?: string } | null>(category === 'all' ? { name: 'All Products' } : null);
 
-  // Try to resolve category name if `category` is numeric id
   useEffect(() => {
     if (category === 'all') {
       setCategoryInfo({ name: 'All Products' });
@@ -40,7 +39,6 @@ const CategoryPage: React.FC<CategoryPageProps> = ({ category, onNavigate }) => 
     }
 
     const tryResolve = async () => {
-      // if looks numeric, try to find category by id
       const asNum = Number(category);
       if (!Number.isNaN(asNum) && String(asNum) === String(category)) {
         try {
@@ -54,19 +52,17 @@ const CategoryPage: React.FC<CategoryPageProps> = ({ category, onNavigate }) => 
           // ignore
         }
       }
-      // fallback: use the raw category string as a label
       setCategoryInfo({ name: category });
     };
 
     tryResolve();
   }, [category]);
 
-  // Fetch products from Supabase
   useEffect(() => {
     const fetchProducts = async () => {
       try {
         setLoading(true);
-  const products = category === 'all' ? await getAllProducts() : await getProductsByCategory(category);
+        const products = category === 'all' ? await getAllProducts() : await getProductsByCategory(category);
         const adaptedProducts = adaptProductsToUIFormat(products);
         setCategoryProducts(adaptedProducts);
       } catch (err) {
@@ -82,41 +78,6 @@ const CategoryPage: React.FC<CategoryPageProps> = ({ category, onNavigate }) => 
     }
   }, [category]);
 
-  // Auth-based refetch to pick up RLS-visible fields after login
-  useEffect(() => {
-    if (authLoading) return;
-    if (session) {
-      (async () => {
-        try {
-          const products = category === 'all' ? await getAllProducts() : await getProductsByCategory(category);
-          setCategoryProducts(adaptProductsToUIFormat(products));
-        } catch (e) {
-          console.warn('Auth refetch category failed', e);
-        }
-      })();
-    }
-  }, [authLoading, session, category]);
-
-  // Listen for app navigation events to refetch on visit/back/forward
-  useEffect(() => {
-    const onAppNavigate = () => {
-      (async () => {
-        try {
-          setLoading(true);
-          const products = category === 'all' ? await getAllProducts() : await getProductsByCategory(category);
-          setCategoryProducts(adaptProductsToUIFormat(products));
-        } catch (e) {
-          console.warn('App navigate category fetch failed', e);
-        } finally {
-          setLoading(false);
-        }
-      })();
-    };
-    window.addEventListener('app:navigate', onAppNavigate);
-    return () => window.removeEventListener('app:navigate', onAppNavigate);
-  }, [category]);
-
-  // Get all unique tags for filtering
   const allTags = useMemo(() => {
     const tags = new Set<string>();
     categoryProducts.forEach(product => {
@@ -149,33 +110,27 @@ const CategoryPage: React.FC<CategoryPageProps> = ({ category, onNavigate }) => 
     });
   };
 
-  // Filter and sort products
   const filteredProducts = useMemo(() => {
     const filtered = categoryProducts.filter(product => {
       const price = product.price || (product.weights?.[0]?.price) || 0;
       const withinPriceRange = price >= priceRange[0] && price <= priceRange[1];
       const hasSelectedTags = selectedTags.length === 0 || (product.tags && selectedTags.some(tag => product.tags!.includes(tag)));
-      
-      // category multi-select filter
+
       if (selectedCategories.length > 0 && product.category && !selectedCategories.includes(product.category)) return false;
 
-      // availability
       if (onlyInStock) {
         const stock = product.stock ?? 0;
         if (stock <= 0) return false;
       }
 
-      // bestseller / new toggles
       if (showBestsellersOnly && !product.isBestseller) return false;
       if (showNewOnly && !product.isNew) return false;
 
-      // minimum rating
       if ((product.rating || 0) < minRating) return false;
-      
+
       return withinPriceRange && hasSelectedTags;
     });
 
-    // Sort products
     switch (sortBy) {
       case 'price-low-high':
         return filtered.sort((a, b) => (a.price || 0) - (b.price || 0));
@@ -186,7 +141,6 @@ const CategoryPage: React.FC<CategoryPageProps> = ({ category, onNavigate }) => 
       case 'rating':
         return filtered.sort((a, b) => (b.rating || 0) - (a.rating || 0));
       default:
-        // Popularity: bestsellers first
         return filtered.sort((a, b) => (b.isBestseller ? 1 : 0) - (a.isBestseller ? 1 : 0));
     }
   }, [categoryProducts, sortBy, priceRange, selectedTags, selectedCategories, onlyInStock, minRating, showBestsellersOnly, showNewOnly]);
@@ -201,10 +155,9 @@ const CategoryPage: React.FC<CategoryPageProps> = ({ category, onNavigate }) => 
 
   if (loading) {
     return (
-      <div className="min-h-screen container mx-auto px-4 py-8">
-        <div className="animate-pulse flex flex-col items-center">
-          <div className="w-12 h-12 border-4 border-amber-600 border-t-transparent rounded-full animate-spin"></div>
-          <p className="mt-4 text-gray-600">Loading products...</p>
+      <div className="min-h-screen bg-stone-50 flex items-center justify-center">
+        <div className="flex flex-col items-center">
+          <div className="w-12 h-12 border-2 border-stone-200 border-t-amber-700 rounded-full animate-spin"></div>
         </div>
       </div>
     );
@@ -212,12 +165,12 @@ const CategoryPage: React.FC<CategoryPageProps> = ({ category, onNavigate }) => 
 
   if (error) {
     return (
-      <div className="min-h-screen container mx-auto px-4 py-8">
-        <div className="text-center p-8 rounded-lg bg-red-50 border border-red-200">
-          <p className="text-red-600">{error}</p>
-          <button 
+      <div className="min-h-screen container mx-auto px-4 py-20 bg-stone-50">
+        <div className="text-center">
+          <p className="text-red-500 mb-4">{error}</p>
+          <button
             onClick={() => window.location.reload()}
-            className="mt-4 px-4 py-2 bg-amber-600 text-white rounded hover:bg-amber-700"
+            className="px-6 py-2 bg-stone-900 text-white hover:bg-amber-700 transition-colors"
           >
             Try Again
           </button>
@@ -227,195 +180,161 @@ const CategoryPage: React.FC<CategoryPageProps> = ({ category, onNavigate }) => 
   }
 
   return (
-    <div className="min-h-screen container mx-auto px-4 py-8">
-      {/* Category Header */}
-      <div className="mb-8">
-        <button 
-          onClick={() => onNavigate('home')}
-          className="text-amber-600 hover:text-amber-700 mb-2 inline-flex items-center"
-        >
-          <ChevronDown className="h-4 w-4 mr-1 rotate-90" />
-          Back to Home
-        </button>
-        <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">
-          {category === 'all' ? 'Build Your Custom Hamper' : (categoryInfo?.name || category.charAt(0).toUpperCase() + category.slice(1))}
-        </h1>
-        <p className="text-gray-600">
-          {category === 'all' 
-            ? 'Select products to add to your custom hamper. Use filters to find the perfect items.'
-            : `Explore our selection of premium ${categoryInfo?.name?.toLowerCase() || category} sourced from around the world.`
-          }
-        </p>
-      </div>
+    <div className="min-h-screen bg-stone-50 pt-8 pb-20">
+      <div className="container mx-auto px-4">
+        {/* Header */}
+        <div className="bg-white p-8 md:p-12 mb-8 border border-stone-100 shadow-sm text-center">
+          <h1 className="text-4xl md:text-5xl font-serif font-bold text-stone-900 mb-4">
+            {category === 'all' ? 'Our Collection' : (categoryInfo?.name || category)}
+          </h1>
+          <p className="text-stone-500 max-w-2xl mx-auto font-light leading-relaxed">
+            {category === 'all'
+              ? 'Discover our complete range of premium nuts, dried fruits, and gourmet treats.'
+              : `Explore our finest selection of ${categoryInfo?.name?.toLowerCase() || category}, hand-picked for quality and freshness.`
+            }
+          </p>
+        </div>
 
-      <div className="flex flex-col lg:flex-row gap-8">
-        {/* Filter Section - Mobile Toggle */}
-        <div className={`${category === 'all' ? 'hidden' : ''} lg:hidden mb-4`}>
+        <div className="flex flex-col lg:flex-row gap-8">
+          {/* Mobile Filter Toggle */}
           <button
             onClick={() => setIsFilterOpen(!isFilterOpen)}
-            className="w-full bg-amber-600 text-white py-2 px-4 rounded flex items-center justify-center"
+            className="lg:hidden w-full bg-white border border-stone-200 py-3 px-4 flex items-center justify-center gap-2 text-stone-700 font-medium"
           >
-            <Filter className="h-4 w-4 mr-2" />
-            {isFilterOpen ? 'Hide Filters' : 'Show Filters'}
+            <Filter className="h-4 w-4" />
+            {isFilterOpen ? 'Hide Filters' : 'Filter Products'}
           </button>
-        </div>
 
-        {/* Sidebar Filters - Desktop Always Visible, Mobile Toggle */}
-        <div className={`${category === 'all' || isFilterOpen ? 'block' : 'hidden'} lg:block lg:w-1/4`}>
-          <div className="bg-white rounded-xl p-6 shadow-sm sticky top-24">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold text-gray-900">Filters</h2>
-              <button 
-                onClick={() => {
-                  setPriceRange([0, 10000]);
-                  setSelectedTags([]);
-                  setSelectedCategories([]);
-                  setOnlyInStock(false);
-                  setMinRating(0);
-                  setShowBestsellersOnly(false);
-                  setShowNewOnly(false);
-                }}
-                className="text-sm text-amber-600 hover:text-amber-700"
-              >
-                Reset All
-              </button>
-            </div>
-
-            {/* Price Range Filter */}
-            <div className="mb-6">
-              <h3 className="font-semibold text-gray-900 mb-3">Price Range</h3>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-gray-600">Rs. {priceRange[0]}</span>
-                <span className="text-gray-600">Rs. {priceRange[1]}</span>
-              </div>
-              <input
-                type="range"
-                min={0}
-                max={10000}
-                value={priceRange[0]}
-                onChange={(e) => setPriceRange([parseInt(e.target.value), priceRange[1]])}
-                className="w-full accent-amber-600 mb-2"
-              />
-              <input
-                type="range"
-                min={0}
-                max={10000}
-                value={priceRange[1]}
-                onChange={(e) => setPriceRange([priceRange[0], parseInt(e.target.value)])}
-                className="w-full accent-amber-600"
-              />
-            </div>
-
-            {/* Category Filter - only for 'all' */}
-            {category === 'all' && allCategories.length > 0 && (
-              <div className="mb-6">
-                <h3 className="font-semibold text-gray-900 mb-3">Category</h3>
-                <div className="space-y-2">
-                  {allCategories.map(cat => (
-                    <label key={cat} className="flex items-center cursor-pointer">
-                      <input type="checkbox" className="h-4 w-4 accent-amber-600" checked={selectedCategories.includes(cat)} onChange={() => toggleCategory(cat)} />
-                      <span className="ml-2 text-gray-700">{cat}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Availability */}
-            <div className="mb-6">
-              <h3 className="font-semibold text-gray-900 mb-3">Availability</h3>
-              <label className="flex items-center cursor-pointer">
-                <input type="checkbox" className="h-4 w-4 accent-amber-600" checked={onlyInStock} onChange={() => setOnlyInStock(!onlyInStock)} />
-                <span className="ml-2 text-gray-700">Show only items in stock</span>
-              </label>
-            </div>
-
-            {/* Special */}
-            <div className="mb-6">
-              <h3 className="font-semibold text-gray-900 mb-3">Special</h3>
-              <label className="flex items-center cursor-pointer mb-2">
-                <input type="checkbox" className="h-4 w-4 accent-amber-600" checked={showBestsellersOnly} onChange={() => setShowBestsellersOnly(!showBestsellersOnly)} />
-                <span className="ml-2 text-gray-700">Bestsellers</span>
-              </label>
-              <label className="flex items-center cursor-pointer">
-                <input type="checkbox" className="h-4 w-4 accent-amber-600" checked={showNewOnly} onChange={() => setShowNewOnly(!showNewOnly)} />
-                <span className="ml-2 text-gray-700">New Arrivals</span>
-              </label>
-            </div>
-
-            {/* Minimum Rating */}
-            <div className="mb-6">
-              <h3 className="font-semibold text-gray-900 mb-3">Minimum Rating</h3>
-              <div className="flex items-center gap-3">
-                <input type="range" min={0} max={5} step={0.5} value={minRating} onChange={(e) => setMinRating(parseFloat(e.target.value))} className="w-full accent-amber-600" />
-                <span className="text-gray-700">{minRating}+</span>
-              </div>
-            </div>
-
-            {/* Tags Filter */}
-            {allTags.length > 0 && (
+          {/* Sidebar */}
+          <aside className={`lg:w-64 flex-shrink-0 ${isFilterOpen ? 'block' : 'hidden'} lg:block`}>
+            <div className="bg-white p-6 border border-stone-100 shadow-sm space-y-8 sticky top-24">
               <div>
-                <h3 className="font-semibold text-gray-900 mb-3">Tags</h3>
-                <div className="space-y-2">
-                  {allTags.map((tag) => (
-                    <label key={tag} className="flex items-center cursor-pointer">
-                      <input
-                        type="checkbox"
-                        className="h-4 w-4 accent-amber-600"
-                        checked={selectedTags.includes(tag)}
-                        onChange={() => toggleTag(tag)}
-                      />
-                      <span className="ml-2 text-gray-700">{tag}</span>
-                    </label>
-                  ))}
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="font-serif font-bold text-stone-900">Filters</h3>
+                  <button onClick={() => {
+                    setPriceRange([0, 10000]);
+                    setSelectedTags([]);
+                    setSelectedCategories([]);
+                    setOnlyInStock(false);
+                    setShowBestsellersOnly(false);
+                  }} className="text-xs text-amber-700 hover:text-amber-800 uppercase tracking-wider font-medium">Reset</button>
                 </div>
+
+                {/* Stock Filter */}
+                <label className="flex items-center gap-3 cursor-pointer group mb-4">
+                  <div className={`w-4 h-4 border transition-colors flex items-center justify-center ${onlyInStock ? 'bg-amber-700 border-amber-700' : 'border-stone-300 group-hover:border-amber-700'}`}>
+                    {onlyInStock && <X className="w-3 h-3 text-white" />}
+                  </div>
+                  <input type="checkbox" checked={onlyInStock} onChange={() => setOnlyInStock(!onlyInStock)} className="hidden" />
+                  <span className="text-stone-600 text-sm group-hover:text-stone-900">In Stock Only</span>
+                </label>
+
+                {/* Price Range */}
+                <div className="mb-6">
+                  <h4 className="text-sm font-bold text-stone-900 mb-3 uppercase tracking-wider">Price Range</h4>
+                  <div className="flex items-center gap-4 text-sm text-stone-600 mb-2">
+                    <span>Rs. {priceRange[0]}</span>
+                    <span>-</span>
+                    <span>Rs. {priceRange[1]}</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="10000"
+                    step="100"
+                    value={priceRange[1]}
+                    onChange={(e) => setPriceRange([priceRange[0], parseInt(e.target.value)])}
+                    className="w-full accent-amber-700 h-1 bg-stone-200 rounded-lg appearance-none cursor-pointer"
+                  />
+                </div>
+
+                {/* Categories (only on 'all' page) */}
+                {category === 'all' && (
+                  <div className="mb-6">
+                    <h4 className="text-sm font-bold text-stone-900 mb-3 uppercase tracking-wider">Categories</h4>
+                    <div className="space-y-2">
+                      {allCategories.map(cat => (
+                        <label key={cat} className="flex items-center gap-3 cursor-pointer group">
+                          <div className={`w-4 h-4 border transition-colors flex items-center justify-center ${selectedCategories.includes(cat) ? 'bg-amber-700 border-amber-700' : 'border-stone-300 group-hover:border-amber-700'}`}>
+                            {selectedCategories.includes(cat) && <div className="w-2 h-2 bg-white" />}
+                          </div>
+                          <input type="checkbox" checked={selectedCategories.includes(cat)} onChange={() => toggleCategory(cat)} className="hidden" />
+                          <span className="text-stone-600 text-sm group-hover:text-stone-900 capitalize">{cat.replace('-', ' ')}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Tags */}
+                {allTags.length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-bold text-stone-900 mb-3 uppercase tracking-wider">Tags</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {allTags.map(tag => (
+                        <button
+                          key={tag}
+                          onClick={() => toggleTag(tag)}
+                          className={`text-xs px-3 py-1 border transition-all ${selectedTags.includes(tag) ? 'bg-amber-700 border-amber-700 text-white' : 'border-stone-200 text-stone-600 hover:border-amber-700 hover:text-amber-700'}`}
+                        >
+                          {tag}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
-            )}
-          </div>
-        </div>
-
-        {/* Product Grid Section */}
-        <div className="lg:w-3/4">
-          {/* Sorting and Results Count */}
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
-            <p className="text-gray-600 mb-2 sm:mb-0">
-              {filteredProducts.length} results
-            </p>
-
-            <div className="relative">
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-                className="appearance-none bg-white border border-gray-300 rounded-lg py-2 pl-4 pr-10 text-gray-700 cursor-pointer hover:border-amber-600 focus:outline-none focus:ring-2 focus:ring-amber-600"
-              >
-                <option value="popularity">Sort by: Popularity</option>
-                <option value="price-low-high">Sort by: Price (Low to High)</option>
-                <option value="price-high-low">Sort by: Price (High to Low)</option>
-                <option value="rating">Sort by: Rating</option>
-                <option value="newest">Sort by: Newest First</option>
-              </select>
-              <ChevronDown className="h-4 w-4 absolute right-3 top-3 pointer-events-none text-gray-500" />
             </div>
-          </div>
+          </aside>
 
           {/* Product Grid */}
-          {filteredProducts.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredProducts.map((product) => (
-              <ProductCard 
-                key={product.id} 
-                product={product} 
-                onNavigate={onNavigate}
-                {...(category === 'all' ? { onAddToHamper: handleAddToHamper } : {})}
-              />
-              ))}
+          <div className="flex-grow">
+            {/* Toolbar */}
+            <div className="flex justify-between items-center mb-6 pb-4 border-b border-stone-200">
+              <span className="text-stone-500 text-sm">{filteredProducts.length} Products Found</span>
+              <div className="relative">
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value)}
+                  className="appearance-none bg-transparent pl-2 pr-8 py-1 text-sm font-medium text-stone-700 focus:outline-none cursor-pointer hover:text-amber-700"
+                >
+                  <option value="popularity">Sort by Popularity</option>
+                  <option value="newest">Newest Arrivals</option>
+                  <option value="price-low-high">Price: Low to High</option>
+                  <option value="price-high-low">Price: High to Low</option>
+                </select>
+                <ChevronDown className="w-4 h-4 absolute right-0 top-1/2 -translate-y-1/2 text-stone-400 pointer-events-none" />
+              </div>
             </div>
-          ) : (
-            <div className="text-center py-12 bg-gray-50 rounded-xl">
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">No products found</h3>
-              <p className="text-gray-600">Try adjusting your filters or check back later.</p>
-            </div>
-          )}
+
+            {filteredProducts.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {filteredProducts.map((product) => (
+                  <ProductCard
+                    key={product.id}
+                    product={product}
+                    onNavigate={onNavigate}
+                    {...(category === 'all' ? { onAddToHamper: handleAddToHamper } : {})}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="bg-white p-12 text-center border border-stone-100 shadow-sm">
+                <p className="text-stone-500 mb-4">No products match your filters.</p>
+                <button
+                  onClick={() => {
+                    setPriceRange([0, 10000]);
+                    setSelectedTags([]);
+                    setSelectedCategories([]);
+                    setOnlyInStock(false);
+                  }}
+                  className="text-amber-700 font-medium hover:underline underline-offset-4"
+                >
+                  Clear all filters
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

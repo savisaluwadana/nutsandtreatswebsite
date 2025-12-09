@@ -6,7 +6,7 @@ import ProductPage from './pages/ProductPage.supabase'; // Using Supabase implem
 import ProductsPage from './pages/ProductsPage.supabase';
 import CartPage from './pages/CartPage';
 import CheckoutPage from './pages/CheckoutPage';
-import HampersPage from './pages/HampersPage';
+import HampersPage from './pages/HampersPage.supabase';
 import CorporatePage from './pages/CorporatePage';
 import AboutPage from './pages/AboutPage';
 import ContactUsPage from './pages/ContactUsPage';
@@ -66,8 +66,8 @@ function App() {
       if (id) setSelectedProduct(parseInt(id, 10));
       if (q) setSearchQuery(decodeURIComponent(q));
       // ensure the page remounts when loading state from hash
-  setNavCounter(c => c + 1);
-  console.debug('[App] Restored from hash:', { page: pageSeg, cat, id, q });
+      setNavCounter(c => c + 1);
+      console.debug('[App] Restored from hash:', { page: pageSeg, cat, id, q });
     }
   }, []);
 
@@ -92,8 +92,8 @@ function App() {
       if (id) setSelectedProduct(parseInt(id, 10));
       if (q) setSearchQuery(decodeURIComponent(q));
       // bump navCounter so pages remount and refetch when user uses back/forward
-  setNavCounter(c => c + 1);
-  console.debug('[App] hashchange ->', { page: pageSeg, cat, id, q });
+      setNavCounter(c => c + 1);
+      console.debug('[App] hashchange ->', { page: pageSeg, cat, id, q });
     };
 
     window.addEventListener('hashchange', onHashChange);
