@@ -1,5 +1,5 @@
 import React from 'react';
-import { Star, Heart, ShoppingCart } from 'lucide-react';
+import { Star, Heart, ShoppingCart, Plus } from 'lucide-react';
 import { Product } from '../data/products';
 import { useCart } from '../context/CartContext';
 import { useLikedProducts } from '../context/LikedProductsContext';
@@ -29,146 +29,93 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onNavigate }) => {
     e.stopPropagation();
     if (!product.id || !product.name || !product.image || !product.category) return;
 
-    const likedProduct = {
-      id: product.id,
-      name: product.name,
-      price: product.price || (product.weights?.[0]?.price) || 0,
-      image: product.image,
-      category: product.category
-    };
-
     if (isLiked(product.id)) {
       removeFromLiked(product.id);
     } else {
-      addToLiked(likedProduct);
-    }
-  };
-
-  const handleCardClick = () => {
-    if (product.id) {
-      const cat = product.category || 'uncategorized';
-      onNavigate('product', cat, product.id);
+      addToLiked({
+        id: product.id,
+        name: product.name,
+        price: product.price || 0,
+        image: product.image,
+        category: product.category
+      });
     }
   };
 
   return (
-    <div 
-      onClick={handleCardClick}
-      className="bg-white rounded-xl shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100 hover:border-amber-200 cursor-pointer group"
+    <div
+      onClick={() => product.id && onNavigate('product', product.category || 'uncategorized', product.id)}
+      className="group cursor-pointer relative"
     >
-      <div className="relative aspect-square overflow-hidden bg-gray-50">
+      <div className="relative aspect-[4/5] overflow-hidden bg-stone-100 mb-4">
         <img
           src={product.image || '/images/placeholder-product.svg'}
           alt={product.name}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
           onError={(e) => {
-            const target = e.target as HTMLImageElement;
-            target.src = '/images/placeholder-product.svg';
+            (e.target as HTMLImageElement).src = '/images/placeholder-product.svg';
           }}
         />
-        
+
         {/* Badges */}
         <div className="absolute top-3 left-3 flex flex-col gap-2">
           {product.isBestseller && (
-            <span className="bg-gradient-to-r from-amber-600 to-orange-500 text-white text-xs font-semibold px-2 py-1 rounded-full shadow-sm">
+            <span className="bg-gold-500 text-white text-[10px] font-bold px-2 py-1 uppercase tracking-wider">
               Bestseller
             </span>
           )}
           {product.isNew && (
-            <span className="bg-green-600 text-white text-xs font-semibold px-2 py-1 rounded-full shadow-sm">
+            <span className="bg-stone-900 text-white text-[10px] font-bold px-2 py-1 uppercase tracking-wider">
               New
             </span>
           )}
         </div>
 
         {/* Wishlist button */}
-        <button 
+        <button
           onClick={handleLikeToggle}
-          className={`absolute top-3 right-3 p-2 rounded-full shadow-md transition-colors ${
-            isLiked(product.id || 0) 
-              ? 'bg-red-500 text-white hover:bg-red-600' 
-              : 'bg-white hover:bg-red-50 hover:text-red-600'
-          }`}
+          className={`absolute top-3 right-3 p-2 rounded-full backdrop-blur-sm transition-all duration-300 transform translate-x-12 group-hover:translate-x-0 ${isLiked(product.id || 0)
+              ? 'bg-white text-red-500 shadow-sm'
+              : 'bg-white/50 text-stone-600 hover:bg-white hover:text-red-500'
+            }`}
         >
           <Heart className={`h-4 w-4 ${isLiked(product.id || 0) ? 'fill-current' : ''}`} />
         </button>
 
-        {/* Discount badge */}
-        {product.originalPrice && product.price && (
-          <div className="absolute bottom-3 left-3 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded shadow">
-            {Math.round((1 - product.price / product.originalPrice) * 100)}% OFF
-          </div>
-        )}
+        {/* Quick Add Overlay */}
+        <div className="absolute inset-x-0 bottom-0 p-4 translate-y-full group-hover:translate-y-0 transition-transform duration-300">
+          <button
+            onClick={handleAddToCart}
+            className="w-full bg-white/95 backdrop-blur text-stone-900 py-3 font-medium hover:bg-gold-500 hover:text-white transition-colors uppercase text-xs tracking-widest shadow-lg border border-stone-200 flex items-center justify-center gap-2"
+          >
+            <Plus className="w-4 h-4" /> Add to Cart
+          </button>
+        </div>
       </div>
 
-      <div className="p-4">
-        <div className="mb-2">
-          <h3 className="font-semibold text-gray-900 group-hover:text-amber-600 transition-colors line-clamp-2">
-            {product.name || 'Product'}
-          </h3>
-          <p className="text-sm text-gray-600 mt-1 line-clamp-2">
-            {product.shortDescription || product.description || ''}
-          </p>
+      <div className="space-y-1">
+        <div className="text-[10px] font-bold uppercase tracking-widest text-gold-600">
+          {product.category || 'Collection'}
         </div>
-
-        {/* Rating */}
-        {product.rating !== undefined && (
-          <div className="flex items-center mb-3">
-            <div className="flex items-center">
-              {[...Array(5)].map((_, i) => (
-                <Star
-                  key={i}
-                  className={`h-4 w-4 ${i < Math.floor(product.rating || 0) 
-                    ? 'text-yellow-400 fill-current' 
-                    : 'text-gray-300'}`}
-                />
-              ))}
-            </div>
-            <span className="text-sm text-gray-600 ml-2">
-              {product.rating} ({product.reviews || 0})
-            </span>
-          </div>
-        )}
-
-        {/* Price */}
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center space-x-2">
-            <span className="text-lg font-bold text-gray-900">
+        <h3 className="font-serif text-lg font-medium text-stone-900 group-hover:text-gold-600 transition-colors line-clamp-1">
+          {product.name || 'Product'}
+        </h3>
+        <div className="flex items-center justify-between mt-2">
+          <div className="flex items-center gap-2">
+            <span className="text-stone-900 font-medium">
               Rs. {(product.price || (product.weights?.[0]?.price) || 0).toLocaleString()}
             </span>
             {(product.originalPrice || product.weights?.[0]?.originalPrice) && (
-              <span className="text-sm text-gray-500 line-through">
+              <span className="text-stone-400 text-sm line-through">
                 Rs. {(product.originalPrice || product.weights?.[0]?.originalPrice || 0).toLocaleString()}
               </span>
             )}
           </div>
-          <span className="text-sm text-gray-600">
-            {product.weights?.[0]?.size || 'Default'}
-          </span>
-        </div>
-
-        {/* Tags */}
-        {product.tags && product.tags.length > 0 && (
-          <div className="flex flex-wrap gap-1 mb-3">
-            {product.tags.slice(0, 2).map((tag, index) => (
-              <span
-                key={index}
-                className="text-xs bg-amber-100 text-amber-800 px-2 py-1 rounded"
-              >
-                {tag}
-              </span>
-            ))}
+          <div className="flex text-gold-400 text-xs gap-0.5">
+            <Star className="w-3 h-3 fill-current" />
+            <span className="text-stone-400 ml-1">{product.rating || 4.5}</span>
           </div>
-        )}
-
-        {/* Add to Cart Button */}
-        <button
-          onClick={handleAddToCart}
-          className="w-full bg-gradient-to-r from-amber-600 to-orange-500 text-white py-2 px-4 rounded-lg font-semibold hover:scale-105 transition-transform duration-200 flex items-center justify-center group"
-        >
-          <ShoppingCart className="h-4 w-4 mr-2" />
-          Add to Cart
-        </button>
+        </div>
       </div>
     </div>
   );

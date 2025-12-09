@@ -152,7 +152,7 @@ function App() {
         <LikedProductsProvider>
           <ToastProvider>
             <div className="min-h-screen bg-white">
-              <Header onNavigate={navigateToPage} />
+              <Header onNavigate={navigateToPage} transparent={currentPage === 'home'} />
               <main>
                 {renderCurrentPage()}
               </main>
